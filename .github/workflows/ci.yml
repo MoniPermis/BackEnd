@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: ${{ env.PACKAGE_MANAGER }} install
       - name: Run tests
-        run: ${{ env.PACKAGE_MANAGER }} run test:coverage
+        run: ${{ env.PACKAGE_MANAGER }} run test:cov
   build:
     needs: run-tests
     runs-on: ubuntu-latest
