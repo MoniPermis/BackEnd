@@ -1,0 +1,14 @@
+name: Feature request
+description: Explain the purpose of the feature.
+title: "[FEAT]: "
+Labels: ["pending"]
+Type: ["Feature"]
+projects: ["Backend"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the feature and how it works.
+    validations:
+      required: true
