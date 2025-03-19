@@ -1,8 +1,8 @@
 name: Feature request
 description: Explain the purpose of the feature.
 title: "[FEAT]: "
-Labels: ["pending"]
-Type: ["Feature"]
+type: "Feature"
+labels: ["pending"]
 projects: ["Backend"]
 body:
   - type: textarea
