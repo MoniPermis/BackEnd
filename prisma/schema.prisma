@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,6 +7,242 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Test {
-  id Int @id @default(autoincrement())
+model Instructor {
+  id                         BigInt   @id
+  priceId                    BigInt   @map("price_id")
+  firstName                  String   @map("first_name") @db.VarChar(255)
+  lastName                   String   @map("last_name") @db.VarChar(255)
+  gender                     String   @db.VarChar(255)
+  email                      String   @unique @db.VarChar(255)
+  phoneNumber                String?  @map("phone_number") @db.VarChar(255)
+  address                    String   @db.VarChar(255)
+  password                   String   @db.VarChar(255)
+  siret                      String   @unique @db.VarChar(255)
+  driverLicenceUrl           String   @map("driver_licence_url") @db.VarChar(255)
+  registrationCertificateUrl String   @map("registration_certificate_url") @db.VarChar(255)
+  insuranceCertificateUrl    String   @map("insurance_certificate_url") @db.VarChar(255)
+  degreeUrl                  String   @map("degree_url") @db.VarChar(255)
+  teachingAuthorizationUrl   String   @map("teaching_authorization_url") @db.VarChar(255)
+  profilePictureUrl          String?  @map("profile_picture_url") @db.VarChar(255)
+  createdAt                  DateTime @map("created_at") @db.Date
+  updatedAt                  DateTime @map("updated_at") @db.Date
+  iban                       String   @unique @map("IBAN") @db.VarChar(255)
+  bic                        String   @map("BIC") @db.VarChar(255)
+
+  // Relations
+  price                 Price                      @relation(fields: [priceId], references: [id])
+  appointments          Appointment[]
+  tchats                Tchat[]
+  meetingPoints         MeetingPoint[]
+  availabilitySchedules AvailabilitySchedule[]
+  unavailabilities      InstructorUnavailability[]
+  reviews               InstructorReview[]
+  purchaseOrders        PurchaseOrder[]
+
+  @@map("instructor")
+}
+
+model Student {
+  id                BigInt   @id
+  firstName         String   @map("first_name") @db.VarChar(255)
+  lastName          String   @map("last_name") @db.VarChar(255)
+  email             String   @unique @db.VarChar(255)
+  password          String   @db.VarChar(255)
+  phoneNumber       String?  @map("phone_number") @db.VarChar(255)
+  neph              BigInt?  @map("NEPH")
+  creditCardId      BigInt?  @map("credit_card_id")
+  profilePictureUrl String?  @map("profile_picture_url") @db.VarChar(255)
+  createdAt         DateTime @map("created_at") @db.Date
+  updatedAt         DateTime @map("updated_at") @db.Date
+
+  // Relations
+  creditCard   CreditCard?   @relation(fields: [creditCardId], references: [id])
+  appointments Appointment[]
+  tchats       Tchat[]
+  payments     Payment[]
+
+  @@map("student")
+}
+
+model Tchat {
+  id            BigInt   @id
+  name          String   @db.VarChar(255)
+  studentId     BigInt   @map("student_id")
+  instructorId  BigInt   @map("instructor_id")
+  createdAt     DateTime @map("created_at") @db.Date
+  lastMessageAt DateTime @map("last_message_at") @db.Date
+
+  // Relations
+  student    Student    @relation(fields: [studentId], references: [id])
+  instructor Instructor @relation(fields: [instructorId], references: [id])
+  messages   Message[]
+
+  @@map("tchat")
+}
+
+model Message {
+  id         BigInt   @id
+  content    String   @db.VarChar(255)
+  senderType String   @map("sender_type") @db.VarChar(255)
+  tchatId    BigInt   @map("tchat_id")
+  isRead     Boolean  @map("is_read")
+  sentAt     DateTime @map("sent_at") @db.Date
+
+  // Relations
+  tchat Tchat @relation(fields: [tchatId], references: [id])
+
+  @@map("message")
+}
+
+model CreditCard {
+  id             BigInt   @id
+  cardNumber     BigInt   @unique @map("card_number")
+  expirationDate DateTime @map("expiration_date") @db.Date
+  cvv            BigInt   @map("CVV")
+  name           String   @db.VarChar(255)
+
+  // Relations
+  students Student[]
+
+  @@map("credit_card")
+}
+
+model Appointment {
+  id             BigInt   @id
+  studentId      BigInt   @map("student_id")
+  instructorId   BigInt   @map("instructor_id")
+  meetingPointId BigInt   @map("meeting_point_id")
+  paymentId      BigInt   @map("payment_id")
+  startTime      DateTime @map("start_time") @db.Date
+  endTime        DateTime @map("end_time") @db.Date
+  description    String   @db.VarChar(255)
+  pending        Boolean  @default(true)
+  isAccepted     Boolean  @map("is_accepted")
+  isValid        Boolean  @map("is_valid")
+  createdAt      DateTime @map("created_at") @db.Date
+  modifiedAt     DateTime @map("modified_at") @db.Date
+
+  // Relations
+  student      Student      @relation(fields: [studentId], references: [id])
+  instructor   Instructor   @relation(fields: [instructorId], references: [id])
+  meetingPoint MeetingPoint @relation(fields: [meetingPointId], references: [id])
+  payment      Payment      @relation(fields: [paymentId], references: [id])
+
+  @@map("appointment")
+}
+
+model MeetingPoint {
+  id           BigInt   @id
+  instructorId BigInt   @map("instructor_id")
+  location     String // Note: PostgreSQL geography type mapped to String
+  name         String   @db.VarChar(255)
+  createdAt    DateTime @map("created_at") @db.Date
+  modifiedAt   DateTime @map("modified_at") @db.Date
+
+  // Relations
+  instructor   Instructor    @relation(fields: [instructorId], references: [id])
+  appointments Appointment[]
+
+  @@map("meeting_point")
+}
+
+model AvailabilitySchedule {
+  id            BigInt    @id
+  instructorId  BigInt    @map("instructor_id")
+  dayOfWeek     Int       @map("day_of_week")
+  startTime     DateTime  @map("start_time") @db.Time(0)
+  endTime       DateTime  @map("end_time") @db.Time(0)
+  isRecurring   Boolean   @map("is_recurring")
+  effectiveDate DateTime  @map("effective_date") @db.Date
+  expiryDate    DateTime? @map("expiry_date") @db.Date
+  note          String?   @db.VarChar(255)
+
+  // Relations
+  instructor Instructor @relation(fields: [instructorId], references: [id])
+
+  @@map("availability_schedule")
+}
+
+model InstructorUnavailability {
+  id            BigInt   @id
+  instructorId  BigInt   @map("instructor_id")
+  startDatetime DateTime @map("start_datetime") @db.Date
+  endDatetime   DateTime @map("end_datetime") @db.Date
+  reason        String   @db.VarChar(255)
+
+  // Relations
+  instructor Instructor @relation(fields: [instructorId], references: [id])
+
+  @@map("instructor_unavailability")
+}
+
+model InstructorReview {
+  id           BigInt   @id
+  instructorId BigInt   @map("instructor_id")
+  starsGrade   Int      @default(5) @map("stars_grade")
+  comment      String   @db.VarChar(255)
+  createdAt    DateTime @map("created_at") @db.Date
+
+  // Relations
+  instructor Instructor @relation(fields: [instructorId], references: [id])
+
+  @@map("instructor_review")
+}
+
+model Payment {
+  id        BigInt   @id
+  studentId BigInt   @map("student_id")
+  priceId   BigInt   @map("price_id")
+  datetime  DateTime @db.Date
+
+  // Relations
+  student        Student         @relation(fields: [studentId], references: [id])
+  price          Price           @relation(fields: [priceId], references: [id])
+  appointments   Appointment[]
+  purchaseOrders PurchaseOrder[]
+
+  @@map("payments")
+}
+
+model Price {
+  id       BigInt @id
+  amount   Int
+  currency String @db.VarChar(255)
+
+  // Relations
+  instructors Instructor[]
+  payments    Payment[]
+
+  @@map("price")
+}
+
+model PurchaseOrder {
+  id                      BigInt   @id
+  instructorId            BigInt   @map("instructor_id")
+  paymentId               BigInt   @map("payment_id")
+  uniqueNumber            String   @unique @map("unique_number") @db.Uuid
+  title                   String   @db.VarChar(255)
+  issueDate               DateTime @map("issue_date") @db.Date
+  expirationDate          DateTime @map("expiration_date") @db.Date
+  deliveryName            String   @map("delivery_name") @db.VarChar(255)
+  deliveryType            String   @map("delivery_type") @db.VarChar(255)
+  deliveryDescription     String   @map("delivery_description") @db.VarChar(255)
+  quantity                Int
+  unitPriceDutyFree       Int      @map("unit_price_duty_free")
+  vat                     Int      @map("VAT")
+  totalPriceDutyFree      Int      @map("total_price_duty_free")
+  finalTotalPriceDutyFree Int      @map("final_total_price_duty_free")
+  finalVat                Int      @map("final_VAT")
+  finalTotalPrice         Int      @map("final_total_price")
+  signatureDate           DateTime @map("signature_date") @db.Date
+  signaturePlace          String   @map("signature_place") @db.VarChar(255)
+  signature               String   @db.VarChar(255)
+  vatNumber               BigInt   @map("VAT_number")
+  createdAt               DateTime @map("created_at") @db.Date
+
+  // Relations
+  instructor Instructor @relation(fields: [instructorId], references: [id])
+  payment    Payment    @relation(fields: [paymentId], references: [id])
+
+  @@map("purchase_order")
 }
