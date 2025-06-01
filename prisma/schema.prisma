@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Instructor {
-  id                         Int      @id
+  id                         Int      @id @default(autoincrement())
   priceId                    Int      @map("price_id")
   firstName                  String   @map("first_name") @db.VarChar(255)
   lastName                   String   @map("last_name") @db.VarChar(255)
@@ -43,7 +43,7 @@ model Instructor {
 }
 
 model Student {
-  id                Int      @id
+  id                Int      @id @default(autoincrement())
   firstName         String   @map("first_name") @db.VarChar(255)
   lastName          String   @map("last_name") @db.VarChar(255)
   email             String   @unique @db.VarChar(255)
@@ -65,7 +65,7 @@ model Student {
 }
 
 model Tchat {
-  id            Int      @id
+  id            Int      @id @default(autoincrement())
   name          String   @db.VarChar(255)
   studentId     Int      @map("student_id")
   instructorId  Int      @map("instructor_id")
@@ -81,7 +81,7 @@ model Tchat {
 }
 
 model Message {
-  id         Int      @id
+  id         Int      @id @default(autoincrement())
   content    String   @db.VarChar(255)
   senderType String   @map("sender_type") @db.VarChar(255)
   tchatId    Int      @map("tchat_id")
@@ -95,7 +95,7 @@ model Message {
 }
 
 model CreditCard {
-  id             Int      @id
+  id             Int      @id @default(autoincrement())
   cardNumber     Int      @unique @map("card_number")
   expirationDate DateTime @map("expiration_date") @db.Date
   cvv            Int      @map("CVV")
@@ -108,7 +108,7 @@ model CreditCard {
 }
 
 model Appointment {
-  id             Int      @id
+  id             Int      @id @default(autoincrement())
   studentId      Int      @map("student_id")
   instructorId   Int      @map("instructor_id")
   meetingPointId Int      @map("meeting_point_id")
@@ -132,7 +132,7 @@ model Appointment {
 }
 
 model MeetingPoint {
-  id           Int      @id
+  id           Int      @id @default(autoincrement())
   instructorId Int      @map("instructor_id")
   location     String // Note: PostgreSQL geography type mapped to String
   name         String   @db.VarChar(255)
@@ -164,7 +164,7 @@ model AvailabilitySchedule {
 }
 
 model InstructorUnavailability {
-  id            Int      @id
+  id            Int      @id @default(autoincrement())
   instructorId  Int      @map("instructor_id")
   startDatetime DateTime @map("start_datetime") @db.Date
   endDatetime   DateTime @map("end_datetime") @db.Date
@@ -177,7 +177,7 @@ model InstructorUnavailability {
 }
 
 model InstructorReview {
-  id           Int      @id
+  id           Int      @id @default(autoincrement())
   instructorId Int      @map("instructor_id")
   starsGrade   Int      @default(5) @map("stars_grade")
   comment      String   @db.VarChar(255)
@@ -190,7 +190,7 @@ model InstructorReview {
 }
 
 model Payment {
-  id        Int      @id
+  id        Int      @id @default(autoincrement())
   studentId Int      @map("student_id")
   priceId   Int      @map("price_id")
   datetime  DateTime @db.Date
@@ -205,7 +205,7 @@ model Payment {
 }
 
 model Price {
-  id       Int    @id
+  id       Int    @id @default(autoincrement())
   amount   Int
   currency String @db.VarChar(255)
 
@@ -217,7 +217,7 @@ model Price {
 }
 
 model PurchaseOrder {
-  id                      Int      @id
+  id                      Int      @id @default(autoincrement())
   instructorId            Int      @map("instructor_id")
   paymentId               Int      @map("payment_id")
   uniqueNumber            String   @unique @map("unique_number") @db.Uuid
