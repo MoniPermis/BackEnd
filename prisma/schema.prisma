@@ -8,8 +8,8 @@ datasource db {
 }
 
 model Instructor {
-  id                         BigInt   @id
-  priceId                    BigInt   @map("price_id")
+  id                         Int      @id
+  priceId                    Int      @map("price_id")
   firstName                  String   @map("first_name") @db.VarChar(255)
   lastName                   String   @map("last_name") @db.VarChar(255)
   gender                     String   @db.VarChar(255)
@@ -43,14 +43,14 @@ model Instructor {
 }
 
 model Student {
-  id                BigInt   @id
+  id                Int      @id
   firstName         String   @map("first_name") @db.VarChar(255)
   lastName          String   @map("last_name") @db.VarChar(255)
   email             String   @unique @db.VarChar(255)
   password          String   @db.VarChar(255)
   phoneNumber       String?  @map("phone_number") @db.VarChar(255)
-  neph              BigInt?  @map("NEPH")
-  creditCardId      BigInt?  @map("credit_card_id")
+  neph              Int?     @map("NEPH")
+  creditCardId      Int?     @map("credit_card_id")
   profilePictureUrl String?  @map("profile_picture_url") @db.VarChar(255)
   createdAt         DateTime @map("created_at") @db.Date
   updatedAt         DateTime @map("updated_at") @db.Date
@@ -65,10 +65,10 @@ model Student {
 }
 
 model Tchat {
-  id            BigInt   @id
+  id            Int      @id
   name          String   @db.VarChar(255)
-  studentId     BigInt   @map("student_id")
-  instructorId  BigInt   @map("instructor_id")
+  studentId     Int      @map("student_id")
+  instructorId  Int      @map("instructor_id")
   createdAt     DateTime @map("created_at") @db.Date
   lastMessageAt DateTime @map("last_message_at") @db.Date
 
@@ -81,10 +81,10 @@ model Tchat {
 }
 
 model Message {
-  id         BigInt   @id
+  id         Int      @id
   content    String   @db.VarChar(255)
   senderType String   @map("sender_type") @db.VarChar(255)
-  tchatId    BigInt   @map("tchat_id")
+  tchatId    Int      @map("tchat_id")
   isRead     Boolean  @map("is_read")
   sentAt     DateTime @map("sent_at") @db.Date
 
@@ -95,10 +95,10 @@ model Message {
 }
 
 model CreditCard {
-  id             BigInt   @id
-  cardNumber     BigInt   @unique @map("card_number")
+  id             Int      @id
+  cardNumber     Int      @unique @map("card_number")
   expirationDate DateTime @map("expiration_date") @db.Date
-  cvv            BigInt   @map("CVV")
+  cvv            Int      @map("CVV")
   name           String   @db.VarChar(255)
 
   // Relations
@@ -108,11 +108,11 @@ model CreditCard {
 }
 
 model Appointment {
-  id             BigInt   @id
-  studentId      BigInt   @map("student_id")
-  instructorId   BigInt   @map("instructor_id")
-  meetingPointId BigInt   @map("meeting_point_id")
-  paymentId      BigInt   @map("payment_id")
+  id             Int      @id
+  studentId      Int      @map("student_id")
+  instructorId   Int      @map("instructor_id")
+  meetingPointId Int      @map("meeting_point_id")
+  paymentId      Int      @map("payment_id")
   startTime      DateTime @map("start_time") @db.Date
   endTime        DateTime @map("end_time") @db.Date
   description    String   @db.VarChar(255)
@@ -132,8 +132,8 @@ model Appointment {
 }
 
 model MeetingPoint {
-  id           BigInt   @id
-  instructorId BigInt   @map("instructor_id")
+  id           Int      @id
+  instructorId Int      @map("instructor_id")
   location     String // Note: PostgreSQL geography type mapped to String
   name         String   @db.VarChar(255)
   createdAt    DateTime @map("created_at") @db.Date
@@ -147,8 +147,8 @@ model MeetingPoint {
 }
 
 model AvailabilitySchedule {
-  id            BigInt    @id
-  instructorId  BigInt    @map("instructor_id")
+  id            Int       @id @default(autoincrement())
+  instructorId  Int       @map("instructor_id")
   dayOfWeek     Int       @map("day_of_week")
   startTime     DateTime  @map("start_time") @db.Time(0)
   endTime       DateTime  @map("end_time") @db.Time(0)
@@ -164,8 +164,8 @@ model AvailabilitySchedule {
 }
 
 model InstructorUnavailability {
-  id            BigInt   @id
-  instructorId  BigInt   @map("instructor_id")
+  id            Int      @id
+  instructorId  Int      @map("instructor_id")
   startDatetime DateTime @map("start_datetime") @db.Date
   endDatetime   DateTime @map("end_datetime") @db.Date
   reason        String   @db.VarChar(255)
@@ -177,8 +177,8 @@ model InstructorUnavailability {
 }
 
 model InstructorReview {
-  id           BigInt   @id
-  instructorId BigInt   @map("instructor_id")
+  id           Int      @id
+  instructorId Int      @map("instructor_id")
   starsGrade   Int      @default(5) @map("stars_grade")
   comment      String   @db.VarChar(255)
   createdAt    DateTime @map("created_at") @db.Date
@@ -190,9 +190,9 @@ model InstructorReview {
 }
 
 model Payment {
-  id        BigInt   @id
-  studentId BigInt   @map("student_id")
-  priceId   BigInt   @map("price_id")
+  id        Int      @id
+  studentId Int      @map("student_id")
+  priceId   Int      @map("price_id")
   datetime  DateTime @db.Date
 
   // Relations
@@ -205,7 +205,7 @@ model Payment {
 }
 
 model Price {
-  id       BigInt @id
+  id       Int    @id
   amount   Int
   currency String @db.VarChar(255)
 
@@ -217,9 +217,9 @@ model Price {
 }
 
 model PurchaseOrder {
-  id                      BigInt   @id
-  instructorId            BigInt   @map("instructor_id")
-  paymentId               BigInt   @map("payment_id")
+  id                      Int      @id
+  instructorId            Int      @map("instructor_id")
+  paymentId               Int      @map("payment_id")
   uniqueNumber            String   @unique @map("unique_number") @db.Uuid
   title                   String   @db.VarChar(255)
   issueDate               DateTime @map("issue_date") @db.Date
