@@ -1,44 +1,34 @@
 import {
   IsBoolean,
-  IsDate,
-  IsInt,
-  IsMilitaryTime,
+  IsDateString,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Max,
-  Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateAvailabilityScheduleDto {
   @IsNotEmpty()
-  @IsInt()
-  @Type(() => Number)
-  instructorId: number;
+  @IsDateString()
+  startDateTime: string;
+
   @IsNotEmpty()
-  @IsInt()
-  @Min(0)
-  @Max(6)
-  @Type(() => Number)
-  dayOfWeek: number;
-  @IsNotEmpty()
-  @IsString()
-  @IsMilitaryTime()
-  startTime: string;
-  @IsNotEmpty()
-  @IsString()
-  @IsMilitaryTime()
-  endTime: string;
+  @IsDateString()
+  endDateTime: string;
+
   @IsNotEmpty()
   @IsBoolean()
   isRecurring: boolean;
-  @IsNotEmpty()
-  @IsDate()
-  effectiveDate: Date;
+
   @IsOptional()
-  @IsDate()
-  expiryDate?: Date;
+  @IsString()
+  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'])
+  recurrenceRule?: string;
+
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
+
   @IsOptional()
   @IsString()
   note?: string;

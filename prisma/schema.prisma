@@ -147,20 +147,26 @@ model MeetingPoint {
 }
 
 model AvailabilitySchedule {
-  id            Int       @id @default(autoincrement())
-  instructorId  Int       @map("instructor_id")
-  dayOfWeek     Int       @map("day_of_week")
-  startTime     DateTime  @map("start_time") @db.Time(0)
-  endTime       DateTime  @map("end_time") @db.Time(0)
-  isRecurring   Boolean   @map("is_recurring")
-  effectiveDate DateTime  @map("effective_date") @db.Date
-  expiryDate    DateTime? @map("expiry_date") @db.Date
-  note          String?   @db.VarChar(255)
+  id             Int       @id @default(autoincrement())
+  instructorId   Int       @map("instructor_id")
+  startDateTime  DateTime  @map("start_datetime")
+  endDateTime    DateTime  @map("end_datetime")
+  isRecurring    Boolean   @map("is_recurring")
+  recurrenceRule RuleType? @map("recurrence_rule")
+  expiryDate     DateTime? @map("expiry_date") @db.Date
+  note           String?   @db.VarChar(255)
 
   // Relations
   instructor Instructor @relation(fields: [instructorId], references: [id])
 
   @@map("availability_schedule")
+}
+
+enum RuleType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
 }
 
 model InstructorUnavailability {

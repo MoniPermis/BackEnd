@@ -13,26 +13,35 @@ export class AvailabilityScheduleService {
     if (!instructor) {
       throw new NotFoundException(`Instructeur avec l'ID ${instructorId} non trouvé`);
     }
-    this.validateAvailabilityTimes(availabilityData.startTime, availabilityData.endTime);
+
+    const start = new Date(availabilityData.startDateTime);
+    const end = new Date(availabilityData.endDateTime);
+    console.log(start);
+    console.log(end);
+    if (start >= end) {
+      throw new BadRequestException('La date de fin doit être postérieure à la date de début');
+    }
+    if (availabilityData.isRecurring && !availabilityData.recurrenceRule) {
+      throw new BadRequestException('La règle de récurrence est requise pour les disponibilités récurrentes');
+    }
+    if (availabilityData.expiryDate && !availabilityData.isRecurring) {
+      throw new BadRequestException('La date d\'expiration n\'est pas applicable pour les disponibilités non récurrentes');
+    }
+    if (availabilityData.expiryDate && new Date(availabilityData.expiryDate) <= new Date()) {
+      throw new BadRequestException('La date d\'expiration doit être postérieure à la date actuelle');
+    }
     return this.prisma.availabilitySchedule.create({
       data: {
         instructorId: instructorId,
-        dayOfWeek: availabilityData.dayOfWeek,
-        startTime: availabilityData.startTime,
-        endTime: availabilityData.endTime,
+        startDateTime: start,
+        endDateTime: end,
         isRecurring: availabilityData.isRecurring,
-        effectiveDate: availabilityData.effectiveDate,
-        expiryDate: availabilityData.expiryDate,
-        note: availabilityData.note
+        recurrenceRule: availabilityData.recurrenceRule
+          ? (availabilityData.recurrenceRule as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY')
+          : null,
+        expiryDate: availabilityData.expiryDate ? new Date(availabilityData.expiryDate) : null,
+        note: availabilityData.note ?? null,
       },
     });
-  }
-  private validateAvailabilityTimes(startTime: string, endTime: string): void {
-    const start = new Date(`1970-01-01T${startTime}:00`);
-    const end = new Date(`1970-01-01T${endTime}:00`);
-
-    if (start >= end) {
-      throw new BadRequestException('L\'heure de fin doit être postérieure à l\'heure de début');
-    }
   }
 }
