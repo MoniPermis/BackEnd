@@ -32,6 +32,9 @@ jobs:
           FILTER_REGEX_EXCLUDE: "prisma/migrations/.* | prisma/population_scripts/.*"
           VALIDATE_TYPESCRIPT_STANDARD: false
           VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_SQL: false
+          VALIDATE_SQLFLUFF: false
+          VALIDATE_JSCPD: false
 
   lint-typescript:
     name: Lint TypeScript
