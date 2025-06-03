@@ -16,8 +16,6 @@ export class AvailabilityScheduleService {
 
     const start = new Date(availabilityData.startDateTime);
     const end = new Date(availabilityData.endDateTime);
-    console.log(start);
-    console.log(end);
     if (start >= end) {
       throw new BadRequestException('La date de fin doit être postérieure à la date de début');
     }
@@ -29,6 +27,12 @@ export class AvailabilityScheduleService {
     }
     if (availabilityData.expiryDate && new Date(availabilityData.expiryDate) <= new Date()) {
       throw new BadRequestException('La date d\'expiration doit être postérieure à la date actuelle');
+    }
+    if (availabilityData.isRecurring && availabilityData.expiryDate && new Date(availabilityData.expiryDate) <= start) {
+      throw new BadRequestException('La date d\'expiration doit être postérieure à la date de début pour les disponibilités récurrentes');
+    }
+    if (availabilityData.isRecurring && availabilityData.expiryDate && new Date(availabilityData.expiryDate) <= end) {
+      throw new BadRequestException('La date d\'expiration doit être postérieure à la date de fin pour les disponibilités récurrentes');
     }
     return this.prisma.availabilitySchedule.create({
       data: {
