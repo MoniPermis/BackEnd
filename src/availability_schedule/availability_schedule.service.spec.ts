@@ -6,7 +6,6 @@ import { CreateAvailabilityScheduleDto } from './dto';
 
 describe('AvailabilityScheduleService', () => {
   let service: AvailabilityScheduleService;
-  let prismaService: PrismaService;
 
   const mockPrismaService = {
     instructor: {
@@ -29,7 +28,6 @@ describe('AvailabilityScheduleService', () => {
     }).compile();
 
     service = module.get<AvailabilityScheduleService>(AvailabilityScheduleService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   beforeEach(() => {
