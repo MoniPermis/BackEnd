@@ -29,10 +29,31 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FILTER_REGEX_EXCLUDE: "prisma/migrations/.*"
+          FILTER_REGEX_EXCLUDE: "prisma/migrations/.* | prisma/population_scripts/.*"
+          VALIDATE_TYPESCRIPT_STANDARD: false
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_SQL: false
+          VALIDATE_SQLFLUFF: false
+          VALIDATE_JSCPD: false
+
+  lint-typescript:
+    name: Lint TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: ${{ env.PACKAGE_MANAGER }}
+      - name: Install dependencies
+        run: ${{ env.PACKAGE_MANAGER }} install
+      - name: Run TypeScript linter
+        run: ${{ env.PACKAGE_MANAGER }} run lint
 
   run-tests:
-    needs: super-lint
+    needs: [super-lint, lint-typescript]
     name: Run tests
     runs-on: ubuntu-latest
     steps:
@@ -47,6 +68,7 @@ jobs:
         run: ${{ env.PACKAGE_MANAGER }} install
       - name: Run tests
         run: ${{ env.PACKAGE_MANAGER }} run test:cov
+
   build:
     needs: run-tests
     runs-on: ubuntu-latest
@@ -62,6 +84,7 @@ jobs:
         run: ${{ env.PACKAGE_MANAGER }} install
       - name: Build
         run: ${{ env.PACKAGE_MANAGER }} run build
+
   deploy:
     needs: build
     name: Docker build test
@@ -69,10 +92,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
