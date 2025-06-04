@@ -1,0 +1,1741 @@
+openapi: 3.0.0
+info:
+  title: Auto-École API
+  description: API pour la gestion d'une application d'auto-école
+  version: 1.0.0
+servers:
+  - url: https://virtserver.swaggerhub.com/monipermis-76d/server/1.0.0
+    description: SwaggerHub API Auto Mocking
+  - url: http://localhost:8080/api/v1
+    description: Serveur de développement local
+tags:
+  - name: Instructeurs
+    description: Opérations relatives aux instructeurs
+  - name: Étudiants
+    description: Opérations relatives aux étudiants
+  - name: Rendez-vous
+    description: Opérations relatives aux rendez-vous
+  - name: Points de rencontre
+    description: Opérations relatives aux points de rencontre
+  - name: Disponibilités
+    description: Opérations relatives aux disponibilités
+  - name: Paiements
+    description: Opérations relatives aux paiements
+  - name: Tchats
+    description: Opérations relatives aux tchats
+  - name: Messages
+    description: Opérations relatives aux messages
+paths:
+  /auth/register/student:
+    post:
+      tags:
+        - Authentication
+        - Étudiants
+      summary: Créer un nouveau compte étudiant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentInput'
+      responses:
+        "201":
+          description: Étudiant créé avec succès
+        "400":
+          description: Données invalides ou manquantes
+        "409":
+          description: Conflit - email déjà utilisé
+        "500":
+          description: Erreur serveur
+  /auth/register/instructor:
+    post:
+      tags:
+        - Authentication
+        - Instructeurs
+      summary: Créer un nouveau compte moniteur
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorInput'
+      responses:
+        "201":
+          description: Étudiant créé avec succès
+        "400":
+          description: Données invalides ou manquantes
+        "409":
+          description: Conflit - email déjà utilisé
+        "500":
+          description: Erreur serveur
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Connexion utilisateur
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/auth_login_body'
+        required: true
+      responses:
+        "200":
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+        "401":
+          description: Email ou mot de passe incorrect
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Rafraîchir le token d'authentification
+      responses:
+        "200":
+          description: Token rafraîchi avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+        "401":
+          description: Token invalide ou expiré
+      security:
+        - BearerAuth: []
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Déconnexion utilisateur
+      responses:
+        "200":
+          description: Déconnexion réussie
+        "401":
+          description: Token invalide
+      security:
+        - BearerAuth: []
+  /auth/password-reset-request:
+    post:
+      tags:
+        - Authentication
+      summary: Demande de réinitialisation du mot de passe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/auth_passwordresetrequest_body'
+        required: true
+      responses:
+        "200":
+          description: Email de réinitialisation envoyé
+        "404":
+          description: Email non trouvé
+  /auth/password-reset:
+    post:
+      tags:
+        - Authentication
+      summary: Réinitialisation du mot de passe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/auth_passwordreset_body'
+        required: true
+      responses:
+        "200":
+          description: Mot de passe réinitialisé avec succès
+        "400":
+          description: Token invalide ou expiré
+  /instructors:
+    get:
+      tags:
+        - Instructeurs
+      summary: Récupérer tous les instructeurs
+      responses:
+        "200":
+          description: Liste des instructeurs récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Instructor'
+  /instructors/{id}:
+    get:
+      tags:
+        - Instructeurs
+      summary: Récupérer un instructeur par son ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Instructeur récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+        "404":
+          description: Instructeur non trouvé
+    put:
+      tags:
+        - Instructeurs
+      summary: Mettre à jour un instructeur
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorInput'
+        required: true
+      responses:
+        "200":
+          description: Instructeur mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+        "404":
+          description: Instructeur non trouvé
+    delete:
+      tags:
+        - Instructeurs
+      summary: Supprimer un instructeur
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Instructeur supprimé avec succès
+        "404":
+          description: Instructeur non trouvé
+  /instructors/{id}/reviews:
+    get:
+      tags:
+        - Instructeurs
+      summary: Récupérer les avis d'un instructeur
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Avis récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InstructorReview'
+    post:
+      tags:
+        - Instructeurs
+      summary: Ajouter un avis pour un instructeur
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorReviewInput'
+        required: true
+      responses:
+        "201":
+          description: Avis ajouté avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorReview'
+  /students/{id}:
+    get:
+      tags:
+        - Étudiants
+      summary: Récupérer un étudiant par son ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Étudiant récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        "404":
+          description: Étudiant non trouvé
+    put:
+      tags:
+        - Étudiants
+      summary: Mettre à jour un étudiant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentInput'
+        required: true
+      responses:
+        "200":
+          description: Étudiant mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        "404":
+          description: Étudiant non trouvé
+    delete:
+      tags:
+        - Étudiants
+      summary: Supprimer un étudiant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Étudiant supprimé avec succès
+        "404":
+          description: Étudiant non trouvé
+  /appointments:
+    post:
+      tags:
+        - Rendez-vous
+      summary: Créer un nouveau rendez-vous
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentInput'
+        required: true
+      responses:
+        "201":
+          description: Rendez-vous créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+  /me/appointments:
+    get:
+      tags:
+        - Rendez-vous
+        - Instructeurs
+        - Étudiants
+      summary: Récupérer tous les rendez-vous de l'utilisateur actuel
+      responses:
+        "200":
+          description: Rendez-vous récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+        "404":
+          description: Rendez-vous non trouvés
+  /instructors/{id}/appointments:
+    get:
+      tags:
+        - Rendez-vous
+        - Instructeurs
+      summary: Récupérer tous les rendez-vous d'un instructeur
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Rendez-vous récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+        "404":
+          description: Rendez-vous non trouvés
+  /appointments/{id}:
+    get:
+      tags:
+        - Rendez-vous
+      summary: Récupérer un rendez-vous par son ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Rendez-vous récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        "404":
+          description: Rendez-vous non trouvé
+    put:
+      tags:
+        - Rendez-vous
+      summary: Mettre à jour un rendez-vous
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentInput'
+        required: true
+      responses:
+        "200":
+          description: Rendez-vous mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        "404":
+          description: Rendez-vous non trouvé
+    delete:
+      tags:
+        - Rendez-vous
+      summary: Supprimer un rendez-vous
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Rendez-vous supprimé avec succès
+        "404":
+          description: Rendez-vous non trouvé
+  /appointments/{id}/validate:
+    put:
+      tags:
+        - Rendez-vous
+      summary: Valider un rendez-vous
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Rendez-vous validé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        "404":
+          description: Rendez-vous non trouvé
+  /meeting-points:
+    get:
+      tags:
+        - Points de rencontre
+      summary: Récupérer tous les points de rencontre
+      responses:
+        "200":
+          description: Liste des points de rencontre récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MeetingPoint'
+    post:
+      tags:
+        - Points de rencontre
+      summary: Créer un nouveau point de rencontre
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingPointInput'
+        required: true
+      responses:
+        "201":
+          description: Point de rencontre créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingPoint'
+  /meeting-points/{id}:
+    put:
+      tags:
+        - Points de rencontre
+      summary: Modifier un point de rencontre
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingPointInput'
+        required: true
+      responses:
+        "200":
+          description: Point de rencontre mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingPoint'
+        "404":
+          description: Point de rencontre non trouvé
+    delete:
+      tags:
+        - Points de rencontre
+      summary: Supprimer un point de rencontre
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Point de rencontre supprimé avec succès
+        "404":
+          description: Point de rencontre non trouvé
+  /instructors/{instructorId}/meeting-points:
+    get:
+      tags:
+        - Points de rencontre
+        - Instructeurs
+      summary: Récupérer les points de rencontre d'un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Points de rencontre récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MeetingPoint'
+        "404":
+          description: Instructeur non trouvé
+  /instructors/{instructorId}/availability:
+    get:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Récupérer les disponibilités d'un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Disponibilités récupérées avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailabilitySchedule'
+        "404":
+          description: Instructeur non trouvé
+    put:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Modifier une disponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvailabilityScheduleInput'
+        required: true
+      responses:
+        "200":
+          description: Disponibilité mise a jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilitySchedule'
+        "404":
+          description: Instructeur non trouvé
+    post:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Ajouter une disponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvailabilityScheduleInput'
+        required: true
+      responses:
+        "201":
+          description: Disponibilité ajoutée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilitySchedule'
+        "404":
+          description: Instructeur non trouvé
+    delete:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Supprimer une disponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Disponibilité supprimer avec succès
+        "404":
+          description: Instructeur non trouvé
+  /instructors/{instructorId}/unavailability:
+    get:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Récupérer les indisponibilités d'un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Indisponibilités récupérées avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InstructorUnavailability'
+        "404":
+          description: Instructeur non trouvé
+    put:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Modifier une Indisponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorUnavailabilityInput'
+        required: true
+      responses:
+        "200":
+          description: Indisponibilité mise a jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorUnavailability'
+        "404":
+          description: Instructeur non trouvé
+    post:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Ajouter une indisponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorUnavailabilityInput'
+        required: true
+      responses:
+        "201":
+          description: Indisponibilité ajoutée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorUnavailability'
+        "404":
+          description: Instructeur non trouvé
+    delete:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Supprimer une indisponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Indisponibilité supprimer avec succès
+        "404":
+          description: Instructeur non trouvé
+  /payments:
+    post:
+      tags:
+        - Paiements
+      summary: Créer un nouveau paiement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInput'
+        required: true
+      responses:
+        "201":
+          description: Paiement créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+  /students/{studentId}/payments:
+    get:
+      tags:
+        - Paiements
+        - Étudiants
+      summary: Récupérer les paiements d'un étudiant
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Paiements récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+        "404":
+          description: Étudiant non trouvé
+  /chats:
+    post:
+      tags:
+        - Tchats
+      summary: Créer un nouveau tchat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TchatInput'
+        required: true
+      responses:
+        "201":
+          description: Tchat créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tchat'
+  /chats/{id}/messages:
+    get:
+      tags:
+        - Tchats
+        - Messages
+      summary: Récupérer les messages d'un tchat
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Messages récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        "404":
+          description: Tchat non trouvé
+    post:
+      tags:
+        - Tchats
+        - Messages
+      summary: Envoyer un message dans un tchat
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageInput'
+        required: true
+      responses:
+        "201":
+          description: Message envoyé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        "404":
+          description: Tchat non trouvé
+  /me/payments:
+    get:
+      tags:
+        - Paiements
+        - Étudiants
+      summary: Récupérer les paiements de l'etudiant actuel
+      responses:
+        "200":
+          description: Paiements récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+        "404":
+          description: Étudiant non trouvé
+  /me/chats:
+    get:
+      tags:
+        - Tchats
+        - Étudiants
+        - Instructeurs
+      summary: Récupérer les tchats de l'utilisateur actuel
+      responses:
+        "200":
+          description: Tchats récupérés avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TchatSummary'
+        "404":
+          description: Étudiant non trouvé
+components:
+  schemas:
+    Instructor:
+      required:
+        - address
+        - bic
+        - createdAt
+        - degreeUrl
+        - driverLicenceUrl
+        - email
+        - firstName
+        - gender
+        - iban
+        - id
+        - insuranceCertificateUrl
+        - lastName
+        - price
+        - priceId
+        - registrationCertificateUrl
+        - siret
+        - teachingAuthorizationUrl
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        priceId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        lastName:
+          type: string
+        gender:
+          type: string
+        email:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+          nullable: true
+        address:
+          type: string
+        siret:
+          type: string
+        driverLicenceUrl:
+          type: string
+        registrationCertificateUrl:
+          type: string
+        insuranceCertificateUrl:
+          type: string
+        degreeUrl:
+          type: string
+        teachingAuthorizationUrl:
+          type: string
+        profilePictureUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date
+        updatedAt:
+          type: string
+          format: date
+        iban:
+          type: string
+        bic:
+          type: string
+        price:
+          $ref: '#/components/schemas/Price'
+    InstructorInput:
+      required:
+        - address
+        - bic
+        - degree
+        - driverLicence
+        - email
+        - firstName
+        - gender
+        - iban
+        - insuranceCertificate
+        - lastName
+        - password
+        - registrationCertificate
+        - siret
+        - teachingAuthorization
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        gender:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        phoneNumber:
+          type: string
+          nullable: true
+        address:
+          type: string
+        driverLicence:
+          type: string
+          description: fichier du permis de conduire
+          format: binary
+        registrationCertificate:
+          type: string
+          description: fichier de la plaque d'immatriculation du vehicule
+          format: binary
+        insuranceCertificate:
+          type: string
+          description: fichier du certificat d'assurance du moniteur
+          format: binary
+        degree:
+          type: string
+          description: fichier du diplome du moniteur
+          format: binary
+        teachingAuthorization:
+          type: string
+          description: fichier de l'autorisation d'enseigner du moniteur.
+          format: binary
+        siret:
+          type: string
+        iban:
+          type: string
+        bic:
+          type: string
+    Student:
+      required:
+        - createdAt
+        - firstName
+        - id
+        - lastName
+        - mail
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        lastName:
+          type: string
+        mail:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+          nullable: true
+        neph:
+          type: integer
+          format: int64
+          nullable: true
+        creditCardId:
+          type: integer
+          format: int64
+          nullable: true
+        profilePictureUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date
+        updatedAt:
+          type: string
+          format: date
+        creditCard:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/CreditCard'
+    StudentInput:
+      required:
+        - firstName
+        - lastName
+        - mail
+        - password
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        mail:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        neph:
+          type: integer
+          format: int64
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        description:
+          type: string
+        is_valid:
+          type: boolean
+        is_accepted:
+          type: boolean
+        pending:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        modified_at:
+          type: string
+          format: date-time
+        instructor:
+          $ref: '#/components/schemas/InstructorSummary'
+        student:
+          $ref: '#/components/schemas/StudentSummary'
+        meeting_point:
+          $ref: '#/components/schemas/MeetingPointSummary'
+    AppointmentInput:
+      required:
+        - description
+        - endTime
+        - instructorId
+        - meetingPointId
+        - startTime
+        - studentId
+      type: object
+      properties:
+        studentId:
+          type: integer
+          format: int64
+        instructorId:
+          type: integer
+          format: int64
+        meetingPointId:
+          type: integer
+          format: int64
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        description:
+          type: string
+    MeetingPoint:
+      required:
+        - createdAt
+        - id
+        - instructorId
+        - location
+        - modifiedAt
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        instructorId:
+          type: integer
+          format: int64
+        location:
+          $ref: '#/components/schemas/MeetingPoint_location'
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date
+        modifiedAt:
+          type: string
+          format: date
+    MeetingPointInput:
+      required:
+        - instructorId
+        - location
+        - name
+      type: object
+      properties:
+        instructorId:
+          type: integer
+          format: int64
+        location:
+          $ref: '#/components/schemas/MeetingPoint_location'
+        name:
+          type: string
+    AvailabilitySchedule:
+      required:
+        - endDateTime
+        - id
+        - instructorId
+        - isRecurring
+        - startDateTime
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        instructorId:
+          type: integer
+          format: int64
+        startDateTime:
+          type: string
+          description: Date et heure de début de la disponibilité
+          format: date-time
+          example: 2024-01-15T09:00:00Z
+        endDateTime:
+          type: string
+          description: Date et heure de fin de la disponibilité
+          format: date-time
+          example: 2024-01-15T17:00:00Z
+        isRecurring:
+          type: boolean
+          description: Indique si la disponibilité est récurrente
+          example: true
+        recurrenceRule:
+          type: string
+          description: Règle de récurrence (optionnel)
+          nullable: true
+          example: WEEKLY
+          enum:
+            - DAILY
+            - WEEKLY
+            - MONTHLY
+            - YEARLY
+        expiryDate:
+          type: string
+          description: Date d'expiration de la récurrence (optionnel)
+          format: date
+          nullable: true
+          example: 2024-12-31
+        note:
+          maxLength: 255
+          type: string
+          description: Note additionnelle (optionnel)
+          nullable: true
+          example: Disponible uniquement le matin
+    AvailabilityScheduleInput:
+      required:
+        - endDateTime
+        - id
+        - instructorId
+        - isRecurring
+        - startDateTime
+      type: object
+      properties:
+        startDateTime:
+          type: string
+          description: Date et heure de début de la disponibilité
+          format: date-time
+          example: 2024-01-15T09:00:00Z
+        endDateTime:
+          type: string
+          description: Date et heure de fin de la disponibilité
+          format: date-time
+          example: 2024-01-15T17:00:00Z
+        isRecurring:
+          type: boolean
+          description: Indique si la disponibilité est récurrente
+          example: true
+        recurrenceRule:
+          type: string
+          description: Règle de récurrence (optionnel)
+          nullable: true
+          example: WEEKLY
+          enum:
+            - DAILY
+            - WEEKLY
+            - MONTHLY
+            - YEARLY
+        expiryDate:
+          type: string
+          description: Date d'expiration de la récurrence (optionnel)
+          format: date
+          nullable: true
+          example: 2024-12-31
+        note:
+          maxLength: 255
+          type: string
+          description: Note additionnelle (optionnel)
+          nullable: true
+          example: Disponible uniquement le matin
+    InstructorUnavailability:
+      required:
+        - endDatetime
+        - id
+        - instructorId
+        - reason
+        - startDatetime
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        instructorId:
+          type: integer
+          format: int64
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+        reason:
+          type: string
+    InstructorUnavailabilityInput:
+      required:
+        - endDatetime
+        - instructorId
+        - reason
+        - startDatetime
+      type: object
+      properties:
+        instructorId:
+          type: integer
+          format: int64
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+        reason:
+          type: string
+    Price:
+      required:
+        - amount
+        - currency
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        amount:
+          type: integer
+        currency:
+          type: string
+    PriceInput:
+      required:
+        - amount
+        - currency
+      type: object
+      properties:
+        amount:
+          type: integer
+        currency:
+          type: string
+    Payment:
+      required:
+        - datetime
+        - id
+        - price
+        - priceId
+        - studentId
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        studentId:
+          type: integer
+          format: int64
+        priceId:
+          type: integer
+          format: int64
+        datetime:
+          type: string
+          format: date-time
+        price:
+          $ref: '#/components/schemas/Price'
+    PaymentInput:
+      required:
+        - price
+        - studentId
+      type: object
+      properties:
+        studentId:
+          type: integer
+          format: int64
+        price:
+          $ref: '#/components/schemas/PriceInput'
+    CreditCard:
+      required:
+        - cardNumber
+        - cvv
+        - expirationDate
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        cardNumber:
+          type: string
+        expirationDate:
+          type: string
+          format: date
+        cvv:
+          type: integer
+        name:
+          type: string
+    CreditCardInput:
+      required:
+        - cardNumber
+        - cvv
+        - expirationDate
+        - name
+      type: object
+      properties:
+        cardNumber:
+          type: string
+        expirationDate:
+          type: string
+          format: date
+        cvv:
+          type: integer
+        name:
+          type: string
+    InstructorReview:
+      required:
+        - comment
+        - created_at
+        - id
+        - instructor_id
+        - stars_grade
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique de l'avis
+          format: int64
+        instructor_id:
+          type: integer
+          description: Identifiant de l'instructeur concerné par l'avis
+          format: int64
+        stars_grade:
+          maximum: 5
+          minimum: 1
+          type: integer
+          description: Note sur 5 étoiles
+          default: 5
+        comment:
+          type: string
+          description: Commentaire de l'avis
+        created_at:
+          type: string
+          description: Date de création de l'avis
+          format: date-time
+    InstructorReviewInput:
+      required:
+        - comment
+        - instructor_id
+        - stars_grade
+      type: object
+      properties:
+        instructor_id:
+          type: integer
+          description: Identifiant de l'instructeur concerné par l'avis
+          format: int64
+        stars_grade:
+          maximum: 5
+          minimum: 1
+          type: integer
+          description: Note sur 5 étoiles
+          default: 5
+        comment:
+          type: string
+          description: Commentaire de l'avis
+    Message:
+      required:
+        - content
+        - id
+        - is_read
+        - sender_type
+        - sent_at
+        - tchat_id
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique du message
+          format: int64
+        content:
+          type: string
+          description: Contenu du message
+        sender_type:
+          type: string
+          description: Type d'expéditeur (student ou instructor)
+          enum:
+            - student
+            - instructor
+        tchat_id:
+          type: integer
+          description: Identifiant du tchat auquel appartient le message
+          format: int64
+        is_read:
+          type: boolean
+          description: Indique si le message a été lu
+        sent_at:
+          type: string
+          description: Date et heure d'envoi du message
+          format: date-time
+    MessageSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        sender_type:
+          type: string
+        sent_at:
+          type: string
+          format: date-time
+        is_read:
+          type: boolean
+    MessageInput:
+      required:
+        - content
+        - sender_type
+        - tchat_id
+      type: object
+      properties:
+        content:
+          type: string
+          description: Contenu du message
+        sender_type:
+          type: string
+          description: Type d'expéditeur (student ou instructor)
+          enum:
+            - student
+            - instructor
+        tchat_id:
+          type: integer
+          description: Identifiant du tchat auquel appartient le message
+          format: int64
+    Tchat:
+      required:
+        - created_at
+        - id
+        - instructor_id
+        - last_message_at
+        - name
+        - student_id
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique du tchat
+          format: int64
+        name:
+          type: string
+          description: Nom du tchat
+        student_id:
+          type: integer
+          description: Identifiant de l'étudiant participant au tchat
+          format: int64
+        instructor_id:
+          type: integer
+          description: Identifiant de l'instructeur participant au tchat
+          format: int64
+        created_at:
+          type: string
+          description: Date de création du tchat
+          format: date-time
+        last_message_at:
+          type: string
+          description: Date du dernier message dans le tchat
+          format: date-time
+        messages:
+          type: array
+          description: Liste des messages dans le tchat
+          items:
+            $ref: '#/components/schemas/Message'
+    TchatSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        student_id:
+          type: integer
+        instructor_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        last_message:
+          $ref: '#/components/schemas/MessageSummary'
+    TchatInput:
+      required:
+        - instructor_id
+        - name
+        - student_id
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nom du tchat
+        student_id:
+          type: integer
+          description: Identifiant de l'étudiant participant au tchat
+          format: int64
+        instructor_id:
+          type: integer
+          description: Identifiant de l'instructeur participant au tchat
+          format: int64
+    InstructorSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        profile_picture_url:
+          type: string
+          format: uri
+    StudentSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        profile_picture_url:
+          type: string
+          format: uri
+    MeetingPointSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        location:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    auth_login_body:
+      required:
+        - email
+        - password
+        - userType
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        userType:
+          type: string
+          enum:
+            - student
+            - instructor
+    inline_response_200:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/Student'
+            - $ref: '#/components/schemas/Instructor'
+    inline_response_200_1:
+      type: object
+      properties:
+        token:
+          type: string
+    auth_passwordresetrequest_body:
+      required:
+        - email
+        - userType
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        userType:
+          type: string
+          enum:
+            - student
+            - instructor
+    auth_passwordreset_body:
+      required:
+        - newPassword
+        - token
+      type: object
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          format: password
+    MeetingPoint_location:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
