@@ -547,7 +547,7 @@ describe('AvailabilityScheduleService - getAllAvailabilitiesByInstructorId', () 
       expect(prismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(prismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(prismaService.availabilitySchedule.findMany as jest.Mock).toHaveBeenCalledWith({
         where: { instructorId: instructorId },
         orderBy: { startDateTime: 'asc' },
       });
@@ -568,7 +568,7 @@ describe('AvailabilityScheduleService - getAllAvailabilitiesByInstructorId', () 
       expect(prismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(prismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(prismaService.availabilitySchedule.findMany as jest.Mock).toHaveBeenCalledWith({
         where: { instructorId: instructorId },
         orderBy: { startDateTime: 'asc' },
       });
@@ -586,10 +586,10 @@ describe('AvailabilityScheduleService - getAllAvailabilitiesByInstructorId', () 
         .rejects
         .toThrow(new NotFoundException(`Instructeur avec l'ID ${instructorId} non trouvé`));
 
-      expect(prismaService.instructor.findUnique).toHaveBeenCalledWith({
+      expect(prismaService.instructor.findUnique as jest.Mock).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(prismaService.availabilitySchedule.findMany).not.toHaveBeenCalled();
+      expect(prismaService.availabilitySchedule.findMany as jest.Mock).not.toHaveBeenCalled();
     });
 
     it('devrait propager l\'erreur si findUnique lève une exception', async () => {
@@ -603,10 +603,10 @@ describe('AvailabilityScheduleService - getAllAvailabilitiesByInstructorId', () 
         .rejects
         .toThrow(databaseError);
 
-      expect(prismaService.instructor.findUnique).toHaveBeenCalledWith({
+      expect(prismaService.instructor.findUnique as jest.Mock).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(prismaService.availabilitySchedule.findMany).not.toHaveBeenCalled();
+      expect(prismaService.availabilitySchedule.findMany as jest.Mock).not.toHaveBeenCalled();
     });
 
     it('devrait propager l\'erreur si findMany lève une exception', async () => {
@@ -621,10 +621,10 @@ describe('AvailabilityScheduleService - getAllAvailabilitiesByInstructorId', () 
         .rejects
         .toThrow(databaseError);
 
-      expect(prismaService.instructor.findUnique).toHaveBeenCalledWith({
+      expect(prismaService.instructor.findUnique as jest.Mock).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(prismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(prismaService.availabilitySchedule.findMany as jest.Mock).toHaveBeenCalledWith({
         where: { instructorId: instructorId },
         orderBy: { startDateTime: 'asc' },
       });
@@ -646,7 +646,7 @@ describe('AvailabilityScheduleService - getAllAvailabilitiesByInstructorId', () 
 
       // Assert
       expect(result).toEqual([]);
-      expect(prismaService.instructor.findUnique).toHaveBeenCalledWith({
+      expect(prismaService.instructor.findUnique as jest.Mock).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
     });
@@ -698,7 +698,7 @@ describe('AvailabilityScheduleService - getAllAvailabilitiesByInstructorId', () 
 
       // Assert
       expect(result).toEqual(unorderedAvailabilities);
-      expect(prismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(prismaService.availabilitySchedule.findMany as jest.Mock).toHaveBeenCalledWith({
         where: { instructorId: instructorId },
         orderBy: { startDateTime: 'asc' },
       });
