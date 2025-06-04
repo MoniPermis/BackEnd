@@ -48,4 +48,17 @@ export class AvailabilityScheduleService {
       },
     });
   }
+
+  async getAllAvailabilitiesByInstructorId(instructorId: number) {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(`Instructeur avec l'ID ${instructorId} non trouvé`);
+    }
+    return this.prisma.availabilitySchedule.findMany({
+      where: { instructorId: instructorId },
+      orderBy: { startDateTime: 'asc' },
+    });
+  }
 }
