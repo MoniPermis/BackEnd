@@ -1,18 +1,50 @@
-import { Controller, Post, Body, Param, ParseIntPipe, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  Get, Put,
+} from '@nestjs/common';
 import { AvailabilityScheduleService } from '../availability_schedule/availability_schedule.service';
 import { CreateAvailabilityScheduleDto } from '../availability_schedule/dto';
 
 @Controller('instructors')
 export class InstructorsController {
-  constructor(private readonly availabilityScheduleService: AvailabilityScheduleService) {}
+  constructor(
+    private readonly availabilityScheduleService: AvailabilityScheduleService,
+  ) {}
 
   @Post(':instructorId/availability')
-  async createAvailability(@Param('instructorId', ParseIntPipe) instructorId: number, @Body() availabilityDto: CreateAvailabilityScheduleDto) {
-    return this.availabilityScheduleService.createAvailability(instructorId, availabilityDto);
+  async createAvailability(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Body() availabilityDto: CreateAvailabilityScheduleDto,
+  ) {
+    return this.availabilityScheduleService.createAvailability(
+      instructorId,
+      availabilityDto,
+    );
   }
 
   @Get(':instructorId/availability')
-  async getAvailabilities(@Param('instructorId', ParseIntPipe) instructorId: number) {
-    return this.availabilityScheduleService.getAllAvailabilitiesByInstructorId(instructorId);
+  async getAvailabilities(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+  ) {
+    return this.availabilityScheduleService.getAllAvailabilitiesByInstructorId(
+      instructorId,
+    );
+  }
+
+  @Put(':instructorId/availability/:availabilityId')
+  async modifyAvailability(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Param('availabilityId', ParseIntPipe) availabilityId: number,
+    @Body() availabilityDto: CreateAvailabilityScheduleDto,
+  ) {
+    return this.availabilityScheduleService.modifyAvailability(
+      instructorId,
+      availabilityId,
+      availabilityDto,
+    );
   }
 }
