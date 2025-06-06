@@ -141,4 +141,36 @@ export class AvailabilityScheduleService {
       }
     }
   }
+
+  async deleteAvailability(
+    instructorId: number,
+    availabilityId: number,
+  ) {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    const availability = await this.prisma.availabilitySchedule.findUnique({
+      where: { id: availabilityId },
+    });
+    if (!availability) {
+      throw new NotFoundException(
+        `Disponibilité avec l'ID ${availabilityId} non trouvée`,
+      );
+    }
+    if (availability.instructorId !== instructorId) {
+      throw new BadRequestException(
+        `Cette disponibilité n'appartient pas à l'instructeur ${instructorId}`,
+      );
+    }
+
+    return this.prisma.availabilitySchedule.delete({
+      where: { id: availabilityId },
+    });
+  }
 }
