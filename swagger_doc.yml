@@ -624,23 +624,6 @@ paths:
                 $ref: '#/components/schemas/AvailabilitySchedule'
         "404":
           description: Instructeur non trouvé
-    delete:
-      tags:
-        - Disponibilités
-        - Instructeurs
-      summary: Supprimer une disponibilité pour un instructeur
-      parameters:
-        - name: instructorId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "204":
-          description: Disponibilité supprimer avec succès
-        "404":
-          description: Instructeur non trouvé
   /instructors/{instructorId}/availability/{availabilityId}:
     put:
       tags:
@@ -673,6 +656,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AvailabilitySchedule'
+        "404":
+          description: Instructeur non trouvé
+    delete:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Supprimer une disponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: availabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Disponibilité supprimée avec succès
         "404":
           description: Instructeur non trouvé
   /instructors/{instructorId}/unavailability:
