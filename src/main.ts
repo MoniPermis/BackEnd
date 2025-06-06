@@ -7,6 +7,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  console.error("Error at startup:", error);
+  console.error('Error at startup:', error);
   process.exit(1);
 });

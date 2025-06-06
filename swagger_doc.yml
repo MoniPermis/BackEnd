@@ -597,33 +597,6 @@ paths:
                   $ref: '#/components/schemas/AvailabilitySchedule'
         "404":
           description: Instructeur non trouvé
-    put:
-      tags:
-        - Disponibilités
-        - Instructeurs
-      summary: Modifier une disponibilité pour un instructeur
-      parameters:
-        - name: instructorId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AvailabilityScheduleInput'
-        required: true
-      responses:
-        "200":
-          description: Disponibilité mise a jour avec succès
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AvailabilitySchedule'
-        "404":
-          description: Instructeur non trouvé
     post:
       tags:
         - Disponibilités
@@ -666,6 +639,40 @@ paths:
       responses:
         "204":
           description: Disponibilité supprimer avec succès
+        "404":
+          description: Instructeur non trouvé
+  /instructors/{instructorId}/availability/{availabilityId}:
+    put:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Modifier une disponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: availabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvailabilityScheduleInput'
+        required: true
+      responses:
+        "200":
+          description: Disponibilité mise a jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilitySchedule'
         "404":
           description: Instructeur non trouvé
   /instructors/{instructorId}/unavailability:
