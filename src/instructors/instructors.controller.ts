@@ -53,8 +53,8 @@ export class InstructorsController {
   async deleteAvailability(
     @Param('instructorId', ParseIntPipe) instructorId: number,
     @Param('availabilityId', ParseIntPipe) availabilityId: number,
-  ) {
-    return this.availabilityScheduleService.deleteAvailability(
+  ):Promise<void> {
+    await this.availabilityScheduleService.deleteAvailability(
       instructorId,
       availabilityId,
     );
