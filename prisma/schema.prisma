@@ -172,8 +172,8 @@ enum RuleType {
 model InstructorUnavailability {
   id            Int      @id @default(autoincrement())
   instructorId  Int      @map("instructor_id")
-  startDatetime DateTime @map("start_datetime") @db.Date
-  endDatetime   DateTime @map("end_datetime") @db.Date
+  startDateTime DateTime @map("start_datetime") @db.Date
+  endDateTime   DateTime @map("end_datetime") @db.Date
   reason        String   @db.VarChar(255)
 
   // Relations
