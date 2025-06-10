@@ -487,7 +487,6 @@ describe('ScheduleValidationService', () => {
     });
 
     it('should validate date range before checking conflicts', () => {
-      const instructorId = 1;
       const now = new Date();
       const startDateTime = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3h futur
       const endDateTime = new Date(now.getTime() + 60 * 60 * 1000); // 1h futur (Invalid range)
