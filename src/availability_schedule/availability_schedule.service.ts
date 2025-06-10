@@ -5,12 +5,19 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAvailabilityScheduleDto } from './dto';
+import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
 
 @Injectable()
 export class AvailabilityScheduleService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private scheduleValidation: ScheduleValidationService,
+  ) {}
 
-  async createAvailability(instructorId: number, availabilityData: CreateAvailabilityScheduleDto) {
+  async createAvailability(
+    instructorId: number,
+    availabilityData: CreateAvailabilityScheduleDto,
+  ) {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
     });
@@ -20,12 +27,26 @@ export class AvailabilityScheduleService {
       );
     }
 
-    this.validateAvailabilityData(availabilityData);
+    // Validation des dates de début et de fin
+    const start = new Date(availabilityData.startDateTime);
+    const end = new Date(availabilityData.endDateTime);
+    this.scheduleValidation.validateDateRange(start, end);
+
+    // Vérifier les conflits de planning
+    await this.scheduleValidation.checkScheduleConflicts(
+      instructorId,
+      start,
+      end,
+    );
+
+    // Valider les dates d'expiration
+    this.validateRecurrenceExpiry(availabilityData);
+
     return this.prisma.availabilitySchedule.create({
       data: {
         instructorId: instructorId,
-        startDateTime: new Date(availabilityData.startDateTime),
-        endDateTime: new Date(availabilityData.endDateTime),
+        startDateTime: start,
+        endDateTime: end,
         isRecurring: availabilityData.isRecurring,
         recurrenceRule: availabilityData.recurrenceRule
           ? (availabilityData.recurrenceRule as
@@ -85,7 +106,18 @@ export class AvailabilityScheduleService {
       );
     }
 
-    this.validateAvailabilityData(updateData);
+    const start = new Date(updateData.startDateTime);
+    const end = new Date(updateData.endDateTime);
+    this.scheduleValidation.validateDateRange(start, end);
+
+    // Vérifier les conflits de planning
+    await this.scheduleValidation.checkScheduleConflictsForUpdate(
+      instructorId,
+      start,
+      end,
+    );
+
+    this.validateRecurrenceExpiry(updateData);
 
     return this.prisma.availabilitySchedule.update({
       where: { id: availabilityId },
@@ -108,44 +140,7 @@ export class AvailabilityScheduleService {
     });
   }
 
-  private validateAvailabilityData(data: CreateAvailabilityScheduleDto): void {
-    const start = new Date(data.startDateTime);
-    const end = new Date(data.endDateTime);
-
-    if (start >= end) {
-      throw new BadRequestException(
-        'La date de fin doit être postérieure à la date de début',
-      );
-    }
-    if (data.isRecurring && !data.recurrenceRule) {
-      throw new BadRequestException(
-        'La règle de récurrence est requise pour les disponibilités récurrentes',
-      );
-    }
-    if (data.expiryDate && !data.isRecurring) {
-      throw new BadRequestException(
-        "La date d'expiration n'est pas applicable pour les disponibilités non récurrentes",
-      );
-    }
-    if (data.expiryDate) {
-      const expiry = new Date(data.expiryDate);
-      if (expiry <= new Date()) {
-        throw new BadRequestException(
-          "La date d'expiration doit être postérieure à la date actuelle",
-        );
-      }
-      if (data.isRecurring && (expiry <= start || expiry <= end)) {
-        throw new BadRequestException(
-          "La date d'expiration doit être postérieure aux dates de début et de fin",
-        );
-      }
-    }
-  }
-
-  async deleteAvailability(
-    instructorId: number,
-    availabilityId: number,
-  ) {
+  async deleteAvailability(instructorId: number, availabilityId: number) {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
     });
@@ -172,5 +167,34 @@ export class AvailabilityScheduleService {
     return this.prisma.availabilitySchedule.delete({
       where: { id: availabilityId },
     });
+  }
+
+  private validateRecurrenceExpiry(data: CreateAvailabilityScheduleDto): void {
+    const start = new Date(data.startDateTime);
+    const end = new Date(data.endDateTime);
+
+    if (data.isRecurring && !data.recurrenceRule) {
+      throw new BadRequestException(
+        'La règle de récurrence est requise pour les disponibilités récurrentes',
+      );
+    }
+    if (data.expiryDate && !data.isRecurring) {
+      throw new BadRequestException(
+        "La date d'expiration n'est pas applicable pour les disponibilités non récurrentes",
+      );
+    }
+    if (data.expiryDate) {
+      const expiry = new Date(data.expiryDate);
+      if (expiry <= new Date()) {
+        throw new BadRequestException(
+          "La date d'expiration doit être postérieure à la date actuelle",
+        );
+      }
+      if (data.isRecurring && (expiry <= start || expiry <= end)) {
+        throw new BadRequestException(
+          "La date d'expiration doit être postérieure aux dates de début et de fin",
+        );
+      }
+    }
   }
 }
