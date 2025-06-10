@@ -96,6 +96,13 @@ export class AvailabilityScheduleService {
       );
     }
 
+    const start = new Date(updateData.startDateTime);
+    const end = new Date(updateData.endDateTime);
+    this.scheduleValidation.validateDateRange(start, end);
+
+    // Vérifier les conflits de planning
+    await this.scheduleValidation.checkScheduleConflictsForUpdate(instructorId, start, end);
+
     this.validateRecurrenceExpiry(updateData);
 
     return this.prisma.availabilitySchedule.update({
