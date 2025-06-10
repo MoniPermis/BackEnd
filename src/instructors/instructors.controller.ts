@@ -4,7 +4,10 @@ import {
   Body,
   Param,
   ParseIntPipe,
-  Get, Put, Delete, HttpCode,
+  Get,
+  Put,
+  Delete,
+  HttpCode,
 } from '@nestjs/common';
 import { AvailabilityScheduleService } from '../availability_schedule/availability_schedule.service';
 import { CreateAvailabilityScheduleDto } from '../availability_schedule/dto';
@@ -56,7 +59,7 @@ export class InstructorsController {
   async deleteAvailability(
     @Param('instructorId', ParseIntPipe) instructorId: number,
     @Param('availabilityId', ParseIntPipe) availabilityId: number,
-  ):Promise<void> {
+  ): Promise<void> {
     await this.availabilityScheduleService.deleteAvailability(
       instructorId,
       availabilityId,

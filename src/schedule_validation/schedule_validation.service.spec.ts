@@ -5,7 +5,6 @@ import { PrismaService } from '../prisma/prisma.service';
 
 describe('ScheduleValidationService', () => {
   let service: ScheduleValidationService;
-  let prismaService: PrismaService;
 
   const mockPrismaService = {
     availabilitySchedule: {
@@ -31,7 +30,6 @@ describe('ScheduleValidationService', () => {
     }).compile();
 
     service = module.get<ScheduleValidationService>(ScheduleValidationService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
@@ -43,7 +41,9 @@ describe('ScheduleValidationService', () => {
     // Utiliser des dates futures pour éviter les erreurs de validation
     const now = new Date();
     const startDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Demain à la même heure
-    const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000); // Demain + 2h
+    const endDateTime = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000,
+    ); // Demain + 2h
 
     beforeEach(() => {
       mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([]);
@@ -53,10 +53,16 @@ describe('ScheduleValidationService', () => {
 
     it('should pass without conflicts', async () => {
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).resolves.not.toThrow();
 
-      expect(mockPrismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.findMany,
+      ).toHaveBeenCalledWith({
         where: {
           instructorId,
           AND: [
@@ -65,31 +71,31 @@ describe('ScheduleValidationService', () => {
                 {
                   AND: [
                     { startDateTime: { lte: startDateTime } },
-                    { endDateTime: { gt: startDateTime } }
-                  ]
+                    { endDateTime: { gt: startDateTime } },
+                  ],
                 },
                 {
                   AND: [
                     { startDateTime: { lt: endDateTime } },
-                    { endDateTime: { gte: endDateTime } }
-                  ]
+                    { endDateTime: { gte: endDateTime } },
+                  ],
                 },
                 {
                   AND: [
                     { startDateTime: { gte: startDateTime } },
-                    { endDateTime: { lte: endDateTime } }
-                  ]
+                    { endDateTime: { lte: endDateTime } },
+                  ],
                 },
                 {
                   AND: [
                     { startDateTime: { lte: startDateTime } },
-                    { endDateTime: { gte: endDateTime } }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                    { endDateTime: { gte: endDateTime } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       });
     });
 
@@ -100,14 +106,24 @@ describe('ScheduleValidationService', () => {
         endDateTime: new Date(startDateTime.getTime() + 60 * 60 * 1000), // 1h après le début
       };
 
-      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([conflictingAvailability]);
+      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([
+        conflictingAvailability,
+      ]);
 
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).rejects.toThrow('Conflit avec les disponibilités existantes');
     });
 
@@ -118,14 +134,24 @@ describe('ScheduleValidationService', () => {
         endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000), // 1h après la fin
       };
 
-      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([conflictingUnavailability]);
+      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([
+        conflictingUnavailability,
+      ]);
 
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).rejects.toThrow('Conflit avec les indisponibilités existantes');
     });
 
@@ -136,14 +162,24 @@ describe('ScheduleValidationService', () => {
         endTime: new Date(endDateTime.getTime() + 30 * 60 * 1000), // 30min après la fin
       };
 
-      mockPrismaService.appointment.findMany.mockResolvedValue([conflictingAppointment]);
+      mockPrismaService.appointment.findMany.mockResolvedValue([
+        conflictingAppointment,
+      ]);
 
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).rejects.toThrow('Conflit avec les rendez-vous confirmés');
     });
 
@@ -158,24 +194,44 @@ describe('ScheduleValidationService', () => {
           id: 2,
           startDateTime: new Date(startDateTime.getTime() + 30 * 60 * 1000),
           endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000),
-        }
+        },
       ];
 
-      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue(conflictingAvailabilities);
+      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue(
+        conflictingAvailabilities,
+      );
 
       try {
-        await service.checkScheduleConflicts(instructorId, startDateTime, endDateTime);
-      } catch (error) {
+        await service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        );
+        // If we reach here, the test should fail
+        expect(true).toBe(false);
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(ConflictException);
-        expect(error.message).toContain('Conflit avec les disponibilités existantes');
-        // Vérifier que les deux dates sont présentes dans le message
-        expect(error.message).toContain(conflictingAvailabilities[0].startDateTime.toISOString());
-        expect(error.message).toContain(conflictingAvailabilities[1].startDateTime.toISOString());
+        if (error instanceof ConflictException) {
+          expect(error.message).toContain(
+            'Conflit avec les disponibilités existantes',
+          );
+          // Vérifier que les deux dates sont présentes dans le message
+          expect(error.message).toContain(
+            conflictingAvailabilities[0].startDateTime.toISOString(),
+          );
+          expect(error.message).toContain(
+            conflictingAvailabilities[1].startDateTime.toISOString(),
+          );
+        }
       }
     });
 
     it('should check appointments with correct filters', async () => {
-      await service.checkScheduleConflicts(instructorId, startDateTime, endDateTime);
+      await service.checkScheduleConflicts(
+        instructorId,
+        startDateTime,
+        endDateTime,
+      );
 
       expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
         where: {
@@ -188,31 +244,31 @@ describe('ScheduleValidationService', () => {
                 {
                   AND: [
                     { startTime: { lte: startDateTime } },
-                    { endTime: { gt: startDateTime } }
-                  ]
+                    { endTime: { gt: startDateTime } },
+                  ],
                 },
                 {
                   AND: [
                     { startTime: { lt: endDateTime } },
-                    { endTime: { gte: endDateTime } }
-                  ]
+                    { endTime: { gte: endDateTime } },
+                  ],
                 },
                 {
                   AND: [
                     { startTime: { gte: startDateTime } },
-                    { endTime: { lte: endDateTime } }
-                  ]
+                    { endTime: { lte: endDateTime } },
+                  ],
                 },
                 {
                   AND: [
                     { startTime: { lte: startDateTime } },
-                    { endTime: { gte: endDateTime } }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                    { endTime: { gte: endDateTime } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       });
     });
   });
@@ -222,7 +278,9 @@ describe('ScheduleValidationService', () => {
     // Utiliser des dates futures
     const now = new Date();
     const startDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000);
+    const endDateTime = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000,
+    );
     const excludeAvailabilityId = 5;
     const excludeUnavailabilityId = 3;
 
@@ -239,8 +297,8 @@ describe('ScheduleValidationService', () => {
           startDateTime,
           endDateTime,
           excludeAvailabilityId,
-          excludeUnavailabilityId
-        )
+          excludeUnavailabilityId,
+        ),
       ).resolves.not.toThrow();
     });
 
@@ -249,15 +307,18 @@ describe('ScheduleValidationService', () => {
         instructorId,
         startDateTime,
         endDateTime,
-        excludeAvailabilityId
+        excludeAvailabilityId,
       );
 
-      expect(mockPrismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.findMany,
+      ).toHaveBeenCalledWith({
         where: {
           instructorId,
           id: { not: excludeAvailabilityId },
-          AND: expect.any(Array)
-        }
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          AND: expect.any(Array),
+        },
       });
     });
 
@@ -267,15 +328,18 @@ describe('ScheduleValidationService', () => {
         startDateTime,
         endDateTime,
         undefined,
-        excludeUnavailabilityId
+        excludeUnavailabilityId,
       );
 
-      expect(mockPrismaService.instructorUnavailability.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.instructorUnavailability.findMany,
+      ).toHaveBeenCalledWith({
         where: {
           instructorId,
           id: { not: excludeUnavailabilityId },
-          AND: expect.any(Array)
-        }
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          AND: expect.any(Array),
+        },
       });
     });
 
@@ -283,21 +347,27 @@ describe('ScheduleValidationService', () => {
       await service.checkScheduleConflictsForUpdate(
         instructorId,
         startDateTime,
-        endDateTime
+        endDateTime,
       );
 
-      expect(mockPrismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.findMany,
+      ).toHaveBeenCalledWith({
         where: {
           instructorId,
-          AND: expect.any(Array)
-        }
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          AND: expect.any(Array),
+        },
       });
 
-      expect(mockPrismaService.instructorUnavailability.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.instructorUnavailability.findMany,
+      ).toHaveBeenCalledWith({
         where: {
           instructorId,
-          AND: expect.any(Array)
-        }
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          AND: expect.any(Array),
+        },
       });
     });
 
@@ -308,15 +378,17 @@ describe('ScheduleValidationService', () => {
         endDateTime: new Date(startDateTime.getTime() + 60 * 60 * 1000),
       };
 
-      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([conflictingAvailability]);
+      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([
+        conflictingAvailability,
+      ]);
 
       await expect(
         service.checkScheduleConflictsForUpdate(
           instructorId,
           startDateTime,
           endDateTime,
-          excludeAvailabilityId
-        )
+          excludeAvailabilityId,
+        ),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -327,7 +399,9 @@ describe('ScheduleValidationService', () => {
         endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000),
       };
 
-      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([conflictingUnavailability]);
+      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([
+        conflictingUnavailability,
+      ]);
 
       await expect(
         service.checkScheduleConflictsForUpdate(
@@ -335,8 +409,8 @@ describe('ScheduleValidationService', () => {
           startDateTime,
           endDateTime,
           undefined,
-          excludeUnavailabilityId
-        )
+          excludeUnavailabilityId,
+        ),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -347,14 +421,16 @@ describe('ScheduleValidationService', () => {
         endTime: new Date(endDateTime.getTime() + 30 * 60 * 1000),
       };
 
-      mockPrismaService.appointment.findMany.mockResolvedValue([conflictingAppointment]);
+      mockPrismaService.appointment.findMany.mockResolvedValue([
+        conflictingAppointment,
+      ]);
 
       await expect(
         service.checkScheduleConflictsForUpdate(
           instructorId,
           startDateTime,
-          endDateTime
-        )
+          endDateTime,
+        ),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -364,7 +440,7 @@ describe('ScheduleValidationService', () => {
         startDateTime,
         endDateTime,
         excludeAvailabilityId,
-        excludeUnavailabilityId
+        excludeUnavailabilityId,
       );
 
       expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
@@ -372,8 +448,9 @@ describe('ScheduleValidationService', () => {
           instructorId,
           isAccepted: true,
           isValid: true,
-          AND: expect.any(Array)
-        }
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          AND: expect.any(Array),
+        },
       });
     });
   });
@@ -462,7 +539,9 @@ describe('ScheduleValidationService', () => {
       const instructorId = 1;
       const now = new Date();
       const startDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000);
+      const endDateTime = new Date(
+        now.getTime() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000,
+      );
 
       // Availability conflict should be checked first and thrown
       mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([
@@ -470,7 +549,7 @@ describe('ScheduleValidationService', () => {
           id: 1,
           startDateTime: new Date(startDateTime.getTime() - 60 * 60 * 1000),
           endDateTime: new Date(startDateTime.getTime() + 60 * 60 * 1000),
-        }
+        },
       ]);
 
       mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([
@@ -478,11 +557,15 @@ describe('ScheduleValidationService', () => {
           id: 1,
           startDateTime: new Date(startDateTime.getTime() + 60 * 60 * 1000),
           endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000),
-        }
+        },
       ]);
 
       await expect(
-        service.checkScheduleConflicts(instructorId, startDateTime, endDateTime)
+        service.checkScheduleConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
       ).rejects.toThrow('Conflit avec les disponibilités existantes');
     });
 
@@ -496,7 +579,9 @@ describe('ScheduleValidationService', () => {
         service.validateDateRange(startDateTime, endDateTime);
       }).toThrow(BadRequestException);
 
-      expect(mockPrismaService.availabilitySchedule.findMany).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.availabilitySchedule.findMany,
+      ).not.toHaveBeenCalled();
     });
   });
 });

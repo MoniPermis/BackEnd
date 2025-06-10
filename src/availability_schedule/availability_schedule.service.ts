@@ -9,9 +9,15 @@ import { ScheduleValidationService } from '../schedule_validation/schedule_valid
 
 @Injectable()
 export class AvailabilityScheduleService {
-  constructor(private prisma: PrismaService, private scheduleValidation: ScheduleValidationService ) {}
+  constructor(
+    private prisma: PrismaService,
+    private scheduleValidation: ScheduleValidationService,
+  ) {}
 
-  async createAvailability(instructorId: number, availabilityData: CreateAvailabilityScheduleDto) {
+  async createAvailability(
+    instructorId: number,
+    availabilityData: CreateAvailabilityScheduleDto,
+  ) {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
     });
@@ -27,7 +33,11 @@ export class AvailabilityScheduleService {
     this.scheduleValidation.validateDateRange(start, end);
 
     // Vérifier les conflits de planning
-    await this.scheduleValidation.checkScheduleConflicts(instructorId, start, end);
+    await this.scheduleValidation.checkScheduleConflicts(
+      instructorId,
+      start,
+      end,
+    );
 
     // Valider les dates d'expiration
     this.validateRecurrenceExpiry(availabilityData);
@@ -101,7 +111,11 @@ export class AvailabilityScheduleService {
     this.scheduleValidation.validateDateRange(start, end);
 
     // Vérifier les conflits de planning
-    await this.scheduleValidation.checkScheduleConflictsForUpdate(instructorId, start, end);
+    await this.scheduleValidation.checkScheduleConflictsForUpdate(
+      instructorId,
+      start,
+      end,
+    );
 
     this.validateRecurrenceExpiry(updateData);
 
@@ -126,10 +140,7 @@ export class AvailabilityScheduleService {
     });
   }
 
-  async deleteAvailability(
-    instructorId: number,
-    availabilityId: number,
-  ) {
+  async deleteAvailability(instructorId: number, availabilityId: number) {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
     });

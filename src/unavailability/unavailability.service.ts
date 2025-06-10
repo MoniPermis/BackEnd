@@ -5,7 +5,10 @@ import { ScheduleValidationService } from '../schedule_validation/schedule_valid
 
 @Injectable()
 export class UnavailabilityService {
-  constructor(private prisma: PrismaService, private scheduleValidation: ScheduleValidationService) {}
+  constructor(
+    private prisma: PrismaService,
+    private scheduleValidation: ScheduleValidationService,
+  ) {}
 
   async createUnavailability(
     instructorId: number,
@@ -15,14 +18,20 @@ export class UnavailabilityService {
       where: { id: instructorId },
     });
     if (!instructor) {
-      throw new NotFoundException(`Instructeur avec l'ID ${instructorId} non trouvé`);
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
     }
 
     const start = new Date(unavailabilityData.startDateTime);
     const end = new Date(unavailabilityData.endDateTime);
 
     this.scheduleValidation.validateDateRange(start, end);
-    await this.scheduleValidation.checkScheduleConflicts(instructorId, start, end);
+    await this.scheduleValidation.checkScheduleConflicts(
+      instructorId,
+      start,
+      end,
+    );
 
     return this.prisma.instructorUnavailability.create({
       data: {

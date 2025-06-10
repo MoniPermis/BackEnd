@@ -7,8 +7,6 @@ import { CreateAvailabilityScheduleDto } from './dto';
 
 describe('AvailabilityScheduleService', () => {
   let service: AvailabilityScheduleService;
-  let prismaService: PrismaService;
-  let scheduleValidationService: ScheduleValidationService;
 
   const mockPrismaService = {
     instructor: {
@@ -62,9 +60,9 @@ describe('AvailabilityScheduleService', () => {
       ],
     }).compile();
 
-    service = module.get<AvailabilityScheduleService>(AvailabilityScheduleService);
-    prismaService = module.get<PrismaService>(PrismaService);
-    scheduleValidationService = module.get<ScheduleValidationService>(ScheduleValidationService);
+    service = module.get<AvailabilityScheduleService>(
+      AvailabilityScheduleService,
+    );
   });
 
   afterEach(() => {
@@ -81,27 +79,42 @@ describe('AvailabilityScheduleService', () => {
 
     beforeEach(() => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
-      mockPrismaService.availabilitySchedule.create.mockResolvedValue(mockAvailability);
-      mockScheduleValidationService.validateDateRange.mockImplementation(() => {});
-      mockScheduleValidationService.checkScheduleConflicts.mockResolvedValue(undefined);
+      mockPrismaService.availabilitySchedule.create.mockResolvedValue(
+        mockAvailability,
+      );
+      mockScheduleValidationService.validateDateRange.mockImplementation(
+        () => {},
+      );
+      mockScheduleValidationService.checkScheduleConflicts.mockResolvedValue(
+        undefined,
+      );
     });
 
     it('should create availability successfully', async () => {
-      const result = await service.createAvailability(instructorId, availabilityData);
+      const result = await service.createAvailability(
+        instructorId,
+        availabilityData,
+      );
 
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockScheduleValidationService.validateDateRange).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.validateDateRange,
+      ).toHaveBeenCalledWith(
         new Date(availabilityData.startDateTime),
-        new Date(availabilityData.endDateTime)
+        new Date(availabilityData.endDateTime),
       );
-      expect(mockScheduleValidationService.checkScheduleConflicts).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.checkScheduleConflicts,
+      ).toHaveBeenCalledWith(
         instructorId,
         new Date(availabilityData.startDateTime),
-        new Date(availabilityData.endDateTime)
+        new Date(availabilityData.endDateTime),
       );
-      expect(mockPrismaService.availabilitySchedule.create).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.create,
+      ).toHaveBeenCalledWith({
         data: {
           instructorId,
           startDateTime: new Date(availabilityData.startDateTime),
@@ -119,11 +132,11 @@ describe('AvailabilityScheduleService', () => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.createAvailability(instructorId, availabilityData)
+        service.createAvailability(instructorId, availabilityData),
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        service.createAvailability(instructorId, availabilityData)
+        service.createAvailability(instructorId, availabilityData),
       ).rejects.toThrow(`Instructeur avec l'ID ${instructorId} non trouvé`);
     });
 
@@ -139,14 +152,18 @@ describe('AvailabilityScheduleService', () => {
 
       await service.createAvailability(instructorId, recurringData);
 
-      expect(mockPrismaService.availabilitySchedule.create).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.create,
+      ).toHaveBeenCalledWith({
         data: {
           instructorId,
           startDateTime: new Date(recurringData.startDateTime),
           endDateTime: new Date(recurringData.endDateTime),
           isRecurring: true,
           recurrenceRule: 'WEEKLY',
-          expiryDate: recurringData.expiryDate ? new Date(recurringData.expiryDate) : null,
+          expiryDate: recurringData.expiryDate
+            ? new Date(recurringData.expiryDate)
+            : null,
           note: 'Test note',
         },
       });
@@ -161,12 +178,14 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, invalidRecurringData)
+        service.createAvailability(instructorId, invalidRecurringData),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.createAvailability(instructorId, invalidRecurringData)
-      ).rejects.toThrow('La règle de récurrence est requise pour les disponibilités récurrentes');
+        service.createAvailability(instructorId, invalidRecurringData),
+      ).rejects.toThrow(
+        'La règle de récurrence est requise pour les disponibilités récurrentes',
+      );
     });
 
     it('should reject expiry date for non-recurring availability', async () => {
@@ -178,19 +197,23 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, invalidData)
+        service.createAvailability(instructorId, invalidData),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.createAvailability(instructorId, invalidData)
-      ).rejects.toThrow("La date d'expiration n'est pas applicable pour les disponibilités non récurrentes");
+        service.createAvailability(instructorId, invalidData),
+      ).rejects.toThrow(
+        "La date d'expiration n'est pas applicable pour les disponibilités non récurrentes",
+      );
     });
 
     it('should reject past expiry date', async () => {
       const now = new Date();
       const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Hier
       const futureStartDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Demain
-      const futureEndDate = new Date(futureStartDate.getTime() + 2 * 60 * 60 * 1000); // 2h après
+      const futureEndDate = new Date(
+        futureStartDate.getTime() + 2 * 60 * 60 * 1000,
+      ); // 2h après
 
       const pastExpiryData: CreateAvailabilityScheduleDto = {
         startDateTime: futureStartDate.toISOString(),
@@ -201,12 +224,14 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, pastExpiryData)
+        service.createAvailability(instructorId, pastExpiryData),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.createAvailability(instructorId, pastExpiryData)
-      ).rejects.toThrow("La date d'expiration doit être postérieure à la date actuelle");
+        service.createAvailability(instructorId, pastExpiryData),
+      ).rejects.toThrow(
+        "La date d'expiration doit être postérieure à la date actuelle",
+      );
     });
 
     it('should reject expiry date before start/end dates for recurring availability', async () => {
@@ -225,12 +250,14 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, invalidExpiryData)
+        service.createAvailability(instructorId, invalidExpiryData),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.createAvailability(instructorId, invalidExpiryData)
-      ).rejects.toThrow("La date d'expiration doit être postérieure aux dates de début et de fin");
+        service.createAvailability(instructorId, invalidExpiryData),
+      ).rejects.toThrow(
+        "La date d'expiration doit être postérieure aux dates de début et de fin",
+      );
     });
   });
 
@@ -239,16 +266,21 @@ describe('AvailabilityScheduleService', () => {
 
     beforeEach(() => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
-      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([mockAvailability]);
+      mockPrismaService.availabilitySchedule.findMany.mockResolvedValue([
+        mockAvailability,
+      ]);
     });
 
     it('should return all availabilities for instructor', async () => {
-      const result = await service.getAllAvailabilitiesByInstructorId(instructorId);
+      const result =
+        await service.getAllAvailabilitiesByInstructorId(instructorId);
 
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockPrismaService.availabilitySchedule.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.findMany,
+      ).toHaveBeenCalledWith({
         where: { instructorId },
         orderBy: { startDateTime: 'asc' },
       });
@@ -259,11 +291,11 @@ describe('AvailabilityScheduleService', () => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.getAllAvailabilitiesByInstructorId(instructorId)
+        service.getAllAvailabilitiesByInstructorId(instructorId),
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        service.getAllAvailabilitiesByInstructorId(instructorId)
+        service.getAllAvailabilitiesByInstructorId(instructorId),
       ).rejects.toThrow(`Instructeur avec l'ID ${instructorId} non trouvé`);
     });
   });
@@ -279,34 +311,52 @@ describe('AvailabilityScheduleService', () => {
 
     beforeEach(() => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
-      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(mockAvailability);
+      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(
+        mockAvailability,
+      );
       mockPrismaService.availabilitySchedule.update.mockResolvedValue({
         ...mockAvailability,
         ...updateData,
       });
-      mockScheduleValidationService.validateDateRange.mockImplementation(() => {});
-      mockScheduleValidationService.checkScheduleConflictsForUpdate.mockResolvedValue(undefined);
+      mockScheduleValidationService.validateDateRange.mockImplementation(
+        () => {},
+      );
+      mockScheduleValidationService.checkScheduleConflictsForUpdate.mockResolvedValue(
+        undefined,
+      );
     });
 
     it('should modify availability successfully', async () => {
-      const result = await service.modifyAvailability(instructorId, availabilityId, updateData);
+      const result = await service.modifyAvailability(
+        instructorId,
+        availabilityId,
+        updateData,
+      );
 
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockPrismaService.availabilitySchedule.findUnique).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.findUnique,
+      ).toHaveBeenCalledWith({
         where: { id: availabilityId },
       });
-      expect(mockScheduleValidationService.validateDateRange).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.validateDateRange,
+      ).toHaveBeenCalledWith(
         new Date(updateData.startDateTime),
-        new Date(updateData.endDateTime)
+        new Date(updateData.endDateTime),
       );
-      expect(mockScheduleValidationService.checkScheduleConflictsForUpdate).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.checkScheduleConflictsForUpdate,
+      ).toHaveBeenCalledWith(
         instructorId,
         new Date(updateData.startDateTime),
-        new Date(updateData.endDateTime)
+        new Date(updateData.endDateTime),
       );
-      expect(mockPrismaService.availabilitySchedule.update).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.update,
+      ).toHaveBeenCalledWith({
         where: { id: availabilityId },
         data: {
           startDateTime: new Date(updateData.startDateTime),
@@ -324,11 +374,11 @@ describe('AvailabilityScheduleService', () => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.modifyAvailability(instructorId, availabilityId, updateData)
+        service.modifyAvailability(instructorId, availabilityId, updateData),
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        service.modifyAvailability(instructorId, availabilityId, updateData)
+        service.modifyAvailability(instructorId, availabilityId, updateData),
       ).rejects.toThrow(`Instructeur avec l'ID ${instructorId} non trouvé`);
     });
 
@@ -336,12 +386,14 @@ describe('AvailabilityScheduleService', () => {
       mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.modifyAvailability(instructorId, availabilityId, updateData)
+        service.modifyAvailability(instructorId, availabilityId, updateData),
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        service.modifyAvailability(instructorId, availabilityId, updateData)
-      ).rejects.toThrow(`Disponibilité avec l'ID ${availabilityId} non trouvée`);
+        service.modifyAvailability(instructorId, availabilityId, updateData),
+      ).rejects.toThrow(
+        `Disponibilité avec l'ID ${availabilityId} non trouvée`,
+      );
     });
 
     it('should throw BadRequestException when availability does not belong to instructor', async () => {
@@ -349,15 +401,19 @@ describe('AvailabilityScheduleService', () => {
         ...mockAvailability,
         instructorId: 2, // Different instructor
       };
-      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(otherInstructorAvailability);
+      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(
+        otherInstructorAvailability,
+      );
 
       await expect(
-        service.modifyAvailability(instructorId, availabilityId, updateData)
+        service.modifyAvailability(instructorId, availabilityId, updateData),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.modifyAvailability(instructorId, availabilityId, updateData)
-      ).rejects.toThrow(`Cette disponibilité n'appartient pas à l'instructeur ${instructorId}`);
+        service.modifyAvailability(instructorId, availabilityId, updateData),
+      ).rejects.toThrow(
+        `Cette disponibilité n'appartient pas à l'instructeur ${instructorId}`,
+      );
     });
 
     it('should update recurring availability with all fields', async () => {
@@ -370,9 +426,15 @@ describe('AvailabilityScheduleService', () => {
         note: 'Updated note',
       };
 
-      await service.modifyAvailability(instructorId, availabilityId, recurringUpdateData);
+      await service.modifyAvailability(
+        instructorId,
+        availabilityId,
+        recurringUpdateData,
+      );
 
-      expect(mockPrismaService.availabilitySchedule.update).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.update,
+      ).toHaveBeenCalledWith({
         where: { id: availabilityId },
         data: {
           startDateTime: new Date(recurringUpdateData.startDateTime),
@@ -392,20 +454,31 @@ describe('AvailabilityScheduleService', () => {
 
     beforeEach(() => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
-      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(mockAvailability);
-      mockPrismaService.availabilitySchedule.delete.mockResolvedValue(mockAvailability);
+      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(
+        mockAvailability,
+      );
+      mockPrismaService.availabilitySchedule.delete.mockResolvedValue(
+        mockAvailability,
+      );
     });
 
     it('should delete availability successfully', async () => {
-      const result = await service.deleteAvailability(instructorId, availabilityId);
+      const result = await service.deleteAvailability(
+        instructorId,
+        availabilityId,
+      );
 
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockPrismaService.availabilitySchedule.findUnique).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.findUnique,
+      ).toHaveBeenCalledWith({
         where: { id: availabilityId },
       });
-      expect(mockPrismaService.availabilitySchedule.delete).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.availabilitySchedule.delete,
+      ).toHaveBeenCalledWith({
         where: { id: availabilityId },
       });
       expect(result).toEqual(mockAvailability);
@@ -415,11 +488,11 @@ describe('AvailabilityScheduleService', () => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.deleteAvailability(instructorId, availabilityId)
+        service.deleteAvailability(instructorId, availabilityId),
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        service.deleteAvailability(instructorId, availabilityId)
+        service.deleteAvailability(instructorId, availabilityId),
       ).rejects.toThrow(`Instructeur avec l'ID ${instructorId} non trouvé`);
     });
 
@@ -427,12 +500,14 @@ describe('AvailabilityScheduleService', () => {
       mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.deleteAvailability(instructorId, availabilityId)
+        service.deleteAvailability(instructorId, availabilityId),
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        service.deleteAvailability(instructorId, availabilityId)
-      ).rejects.toThrow(`Disponibilité avec l'ID ${availabilityId} non trouvée`);
+        service.deleteAvailability(instructorId, availabilityId),
+      ).rejects.toThrow(
+        `Disponibilité avec l'ID ${availabilityId} non trouvée`,
+      );
     });
 
     it('should throw BadRequestException when availability does not belong to instructor', async () => {
@@ -440,15 +515,19 @@ describe('AvailabilityScheduleService', () => {
         ...mockAvailability,
         instructorId: 2, // Different instructor
       };
-      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(otherInstructorAvailability);
+      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(
+        otherInstructorAvailability,
+      );
 
       await expect(
-        service.deleteAvailability(instructorId, availabilityId)
+        service.deleteAvailability(instructorId, availabilityId),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.deleteAvailability(instructorId, availabilityId)
-      ).rejects.toThrow(`Cette disponibilité n'appartient pas à l'instructeur ${instructorId}`);
+        service.deleteAvailability(instructorId, availabilityId),
+      ).rejects.toThrow(
+        `Cette disponibilité n'appartient pas à l'instructeur ${instructorId}`,
+      );
     });
   });
 
@@ -457,8 +536,12 @@ describe('AvailabilityScheduleService', () => {
 
     beforeEach(() => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
-      mockScheduleValidationService.validateDateRange.mockImplementation(() => {});
-      mockScheduleValidationService.checkScheduleConflicts.mockResolvedValue(undefined);
+      mockScheduleValidationService.validateDateRange.mockImplementation(
+        () => {},
+      );
+      mockScheduleValidationService.checkScheduleConflicts.mockResolvedValue(
+        undefined,
+      );
     });
 
     it('should validate recurring availability requires recurrence rule', async () => {
@@ -470,8 +553,10 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, invalidData)
-      ).rejects.toThrow('La règle de récurrence est requise pour les disponibilités récurrentes');
+        service.createAvailability(instructorId, invalidData),
+      ).rejects.toThrow(
+        'La règle de récurrence est requise pour les disponibilités récurrentes',
+      );
     });
 
     it('should validate expiry date is not allowed for non-recurring availability', async () => {
@@ -483,8 +568,10 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, invalidData)
-      ).rejects.toThrow("La date d'expiration n'est pas applicable pour les disponibilités non récurrentes");
+        service.createAvailability(instructorId, invalidData),
+      ).rejects.toThrow(
+        "La date d'expiration n'est pas applicable pour les disponibilités non récurrentes",
+      );
     });
 
     it('should validate expiry date is in the future', async () => {
@@ -500,8 +587,10 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, invalidData)
-      ).rejects.toThrow("La date d'expiration doit être postérieure à la date actuelle");
+        service.createAvailability(instructorId, invalidData),
+      ).rejects.toThrow(
+        "La date d'expiration doit être postérieure à la date actuelle",
+      );
     });
 
     it('should validate expiry date is after start and end dates for recurring availability', async () => {
@@ -521,8 +610,10 @@ describe('AvailabilityScheduleService', () => {
       };
 
       await expect(
-        service.createAvailability(instructorId, invalidData)
-      ).rejects.toThrow("La date d'expiration doit être postérieure aux dates de début et de fin");
+        service.createAvailability(instructorId, invalidData),
+      ).rejects.toThrow(
+        "La date d'expiration doit être postérieure aux dates de début et de fin",
+      );
     });
   });
 
@@ -545,35 +636,55 @@ describe('AvailabilityScheduleService', () => {
       });
 
       await expect(
-        service.createAvailability(instructorId, availabilityData)
+        service.createAvailability(instructorId, availabilityData),
       ).rejects.toThrow(validationError);
     });
 
     it('should propagate schedule conflict errors from ScheduleValidationService', async () => {
       const conflictError = new BadRequestException('Schedule conflict');
-      mockScheduleValidationService.validateDateRange.mockImplementation(() => {});
-      mockScheduleValidationService.checkScheduleConflicts.mockRejectedValue(conflictError);
+      mockScheduleValidationService.validateDateRange.mockImplementation(
+        () => {},
+      );
+      mockScheduleValidationService.checkScheduleConflicts.mockRejectedValue(
+        conflictError,
+      );
 
       await expect(
-        service.createAvailability(instructorId, availabilityData)
+        service.createAvailability(instructorId, availabilityData),
       ).rejects.toThrow(conflictError);
     });
 
     it('should use checkScheduleConflictsForUpdate in modify method', async () => {
       const availabilityId = 1;
-      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(mockAvailability);
-      mockPrismaService.availabilitySchedule.update.mockResolvedValue(mockAvailability);
-      mockScheduleValidationService.validateDateRange.mockImplementation(() => {});
-      mockScheduleValidationService.checkScheduleConflictsForUpdate.mockResolvedValue(undefined);
+      mockPrismaService.availabilitySchedule.findUnique.mockResolvedValue(
+        mockAvailability,
+      );
+      mockPrismaService.availabilitySchedule.update.mockResolvedValue(
+        mockAvailability,
+      );
+      mockScheduleValidationService.validateDateRange.mockImplementation(
+        () => {},
+      );
+      mockScheduleValidationService.checkScheduleConflictsForUpdate.mockResolvedValue(
+        undefined,
+      );
 
-      await service.modifyAvailability(instructorId, availabilityId, availabilityData);
+      await service.modifyAvailability(
+        instructorId,
+        availabilityId,
+        availabilityData,
+      );
 
-      expect(mockScheduleValidationService.checkScheduleConflictsForUpdate).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.checkScheduleConflictsForUpdate,
+      ).toHaveBeenCalledWith(
         instructorId,
         new Date(availabilityData.startDateTime),
-        new Date(availabilityData.endDateTime)
+        new Date(availabilityData.endDateTime),
       );
-      expect(mockScheduleValidationService.checkScheduleConflicts).not.toHaveBeenCalled();
+      expect(
+        mockScheduleValidationService.checkScheduleConflicts,
+      ).not.toHaveBeenCalled();
     });
   });
 });
