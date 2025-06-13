@@ -42,4 +42,20 @@ export class UnavailabilityService {
       },
     });
   }
+
+  async getAllUnavailabilitiesByInstructorId(instructorId: number) {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    return this.prisma.instructorUnavailability.findMany({
+      where: { instructorId },
+      orderBy: { startDateTime: 'asc' },
+    });
+  }
 }

@@ -76,4 +76,13 @@ export class InstructorsController {
       unavailabilityDto,
     );
   }
+
+  @Get(':instructorId/unavailability')
+  async getUnavailabilities(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+  ) {
+    return this.unavailabilityService.getAllUnavailabilitiesByInstructorId(
+      instructorId,
+    );
+  }
 }
