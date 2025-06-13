@@ -87,27 +87,42 @@ describe('UnavailabilityService', () => {
 
     beforeEach(() => {
       mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
-      mockPrismaService.instructorUnavailability.create.mockResolvedValue(mockUnavailability);
-      mockScheduleValidationService.validateDateRange.mockImplementation(() => {});
-      mockScheduleValidationService.checkScheduleConflicts.mockResolvedValue(undefined);
+      mockPrismaService.instructorUnavailability.create.mockResolvedValue(
+        mockUnavailability,
+      );
+      mockScheduleValidationService.validateDateRange.mockImplementation(
+        () => {},
+      );
+      mockScheduleValidationService.checkScheduleConflicts.mockResolvedValue(
+        undefined,
+      );
     });
 
     it('should create unavailability successfully when instructor exists and validation passes', async () => {
-      const result = await service.createUnavailability(instructorId, mockCreateUnavailabilityDto);
+      const result = await service.createUnavailability(
+        instructorId,
+        mockCreateUnavailabilityDto,
+      );
 
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockScheduleValidationService.validateDateRange).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.validateDateRange,
+      ).toHaveBeenCalledWith(
         new Date(mockCreateUnavailabilityDto.startDateTime),
         new Date(mockCreateUnavailabilityDto.endDateTime),
       );
-      expect(mockScheduleValidationService.checkScheduleConflicts).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.checkScheduleConflicts,
+      ).toHaveBeenCalledWith(
         instructorId,
         new Date(mockCreateUnavailabilityDto.startDateTime),
         new Date(mockCreateUnavailabilityDto.endDateTime),
       );
-      expect(mockPrismaService.instructorUnavailability.create).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.instructorUnavailability.create,
+      ).toHaveBeenCalledWith({
         data: {
           instructorId,
           startDateTime: new Date(mockCreateUnavailabilityDto.startDateTime),
@@ -132,13 +147,21 @@ describe('UnavailabilityService', () => {
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockScheduleValidationService.validateDateRange).not.toHaveBeenCalled();
-      expect(mockScheduleValidationService.checkScheduleConflicts).not.toHaveBeenCalled();
-      expect(mockPrismaService.instructorUnavailability.create).not.toHaveBeenCalled();
+      expect(
+        mockScheduleValidationService.validateDateRange,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockScheduleValidationService.checkScheduleConflicts,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.instructorUnavailability.create,
+      ).not.toHaveBeenCalled();
     });
 
     it('should propagate validation errors from scheduleValidation.validateDateRange', async () => {
-      const validationError = new BadRequestException('Date de fin antérieure à la date de début');
+      const validationError = new BadRequestException(
+        'Date de fin antérieure à la date de début',
+      );
       mockScheduleValidationService.validateDateRange.mockImplementation(() => {
         throw validationError;
       });
@@ -150,17 +173,27 @@ describe('UnavailabilityService', () => {
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockScheduleValidationService.validateDateRange).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.validateDateRange,
+      ).toHaveBeenCalledWith(
         new Date(mockCreateUnavailabilityDto.startDateTime),
         new Date(mockCreateUnavailabilityDto.endDateTime),
       );
-      expect(mockScheduleValidationService.checkScheduleConflicts).not.toHaveBeenCalled();
-      expect(mockPrismaService.instructorUnavailability.create).not.toHaveBeenCalled();
+      expect(
+        mockScheduleValidationService.checkScheduleConflicts,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.instructorUnavailability.create,
+      ).not.toHaveBeenCalled();
     });
 
     it('should propagate validation errors from scheduleValidation.checkScheduleConflicts', async () => {
-      const conflictError = new BadRequestException('Conflit avec un rendez-vous existant');
-      mockScheduleValidationService.checkScheduleConflicts.mockRejectedValue(conflictError);
+      const conflictError = new BadRequestException(
+        'Conflit avec un rendez-vous existant',
+      );
+      mockScheduleValidationService.checkScheduleConflicts.mockRejectedValue(
+        conflictError,
+      );
 
       await expect(
         service.createUnavailability(instructorId, mockCreateUnavailabilityDto),
@@ -169,27 +202,37 @@ describe('UnavailabilityService', () => {
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockScheduleValidationService.validateDateRange).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.validateDateRange,
+      ).toHaveBeenCalledWith(
         new Date(mockCreateUnavailabilityDto.startDateTime),
         new Date(mockCreateUnavailabilityDto.endDateTime),
       );
-      expect(mockScheduleValidationService.checkScheduleConflicts).toHaveBeenCalledWith(
+      expect(
+        mockScheduleValidationService.checkScheduleConflicts,
+      ).toHaveBeenCalledWith(
         instructorId,
         new Date(mockCreateUnavailabilityDto.startDateTime),
         new Date(mockCreateUnavailabilityDto.endDateTime),
       );
-      expect(mockPrismaService.instructorUnavailability.create).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.instructorUnavailability.create,
+      ).not.toHaveBeenCalled();
     });
 
     it('should handle Prisma errors during unavailability creation', async () => {
       const prismaError = new Error('Database connection failed');
-      mockPrismaService.instructorUnavailability.create.mockRejectedValue(prismaError);
+      mockPrismaService.instructorUnavailability.create.mockRejectedValue(
+        prismaError,
+      );
 
       await expect(
         service.createUnavailability(instructorId, mockCreateUnavailabilityDto),
       ).rejects.toThrow(prismaError);
 
-      expect(mockPrismaService.instructorUnavailability.create).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.instructorUnavailability.create,
+      ).toHaveBeenCalledWith({
         data: {
           instructorId,
           startDateTime: new Date(mockCreateUnavailabilityDto.startDateTime),
@@ -207,13 +250,18 @@ describe('UnavailabilityService', () => {
       };
 
       // The Date constructor will create an Invalid Date, which should be caught by validateDateRange
-      const validationError = new BadRequestException('Format de date invalide');
+      const validationError = new BadRequestException(
+        'Format de date invalide',
+      );
       mockScheduleValidationService.validateDateRange.mockImplementation(() => {
         throw validationError;
       });
 
       await expect(
-        service.createUnavailability(instructorId, invalidDto as CreateUnavailabilityDto),
+        service.createUnavailability(
+          instructorId,
+          invalidDto as CreateUnavailabilityDto,
+        ),
       ).rejects.toThrow(validationError);
     });
   });
@@ -239,14 +287,19 @@ describe('UnavailabilityService', () => {
         },
       ];
 
-      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue(mockUnavailabilities);
+      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue(
+        mockUnavailabilities,
+      );
 
-      const result = await service.getAllUnavailabilitiesByInstructorId(instructorId);
+      const result =
+        await service.getAllUnavailabilitiesByInstructorId(instructorId);
 
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockPrismaService.instructorUnavailability.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.instructorUnavailability.findMany,
+      ).toHaveBeenCalledWith({
         where: { instructorId },
         orderBy: { startDateTime: 'asc' },
       });
@@ -256,12 +309,15 @@ describe('UnavailabilityService', () => {
     it('should return empty array when instructor exists but has no unavailabilities', async () => {
       mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([]);
 
-      const result = await service.getAllUnavailabilitiesByInstructorId(instructorId);
+      const result =
+        await service.getAllUnavailabilitiesByInstructorId(instructorId);
 
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockPrismaService.instructorUnavailability.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.instructorUnavailability.findMany,
+      ).toHaveBeenCalledWith({
         where: { instructorId },
         orderBy: { startDateTime: 'asc' },
       });
@@ -282,12 +338,16 @@ describe('UnavailabilityService', () => {
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockPrismaService.instructorUnavailability.findMany).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.instructorUnavailability.findMany,
+      ).not.toHaveBeenCalled();
     });
 
     it('should handle Prisma errors during unavailabilities retrieval', async () => {
       const prismaError = new Error('Database connection failed');
-      mockPrismaService.instructorUnavailability.findMany.mockRejectedValue(prismaError);
+      mockPrismaService.instructorUnavailability.findMany.mockRejectedValue(
+        prismaError,
+      );
 
       await expect(
         service.getAllUnavailabilitiesByInstructorId(instructorId),
@@ -296,7 +356,9 @@ describe('UnavailabilityService', () => {
       expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: instructorId },
       });
-      expect(mockPrismaService.instructorUnavailability.findMany).toHaveBeenCalledWith({
+      expect(
+        mockPrismaService.instructorUnavailability.findMany,
+      ).toHaveBeenCalledWith({
         where: { instructorId },
         orderBy: { startDateTime: 'asc' },
       });
@@ -351,8 +413,12 @@ describe('UnavailabilityService', () => {
 
     it('should propagate schedule conflict errors from ScheduleValidationService', async () => {
       const conflictError = new BadRequestException('Schedule conflict');
-      mockScheduleValidationService.validateDateRange.mockImplementation(() => {});
-      mockScheduleValidationService.checkScheduleConflicts.mockRejectedValue(conflictError);
+      mockScheduleValidationService.validateDateRange.mockImplementation(
+        () => {},
+      );
+      mockScheduleValidationService.checkScheduleConflicts.mockRejectedValue(
+        conflictError,
+      );
 
       await expect(
         service.createUnavailability(instructorId, mockCreateUnavailabilityDto),
