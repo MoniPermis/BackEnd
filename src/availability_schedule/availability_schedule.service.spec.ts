@@ -3,7 +3,10 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AvailabilityScheduleService } from './availability_schedule.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
-import { CreateAvailabilityScheduleDto } from './dto';
+import {
+  CreateAvailabilityScheduleDto,
+  UpdateAvailabilityScheduleDto,
+} from './dto';
 
 describe('AvailabilityScheduleService', () => {
   let service: AvailabilityScheduleService;
@@ -303,7 +306,7 @@ describe('AvailabilityScheduleService', () => {
   describe('modifyAvailability', () => {
     const instructorId = 1;
     const availabilityId = 1;
-    const updateData: CreateAvailabilityScheduleDto = {
+    const updateData: UpdateAvailabilityScheduleDto = {
       startDateTime: '2025-06-10T14:00:00Z',
       endDateTime: '2025-06-10T16:00:00Z',
       isRecurring: false,
