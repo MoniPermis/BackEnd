@@ -705,33 +705,6 @@ paths:
                   $ref: '#/components/schemas/InstructorUnavailability'
         "404":
           description: Instructeur non trouvé
-    put:
-      tags:
-        - Disponibilités
-        - Instructeurs
-      summary: Modifier une Indisponibilité pour un instructeur
-      parameters:
-        - name: instructorId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InstructorUnavailabilityInput'
-        required: true
-      responses:
-        "200":
-          description: Indisponibilité mise a jour avec succès
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InstructorUnavailability'
-        "404":
-          description: Instructeur non trouvé
     post:
       tags:
         - Disponibilités
@@ -759,6 +732,53 @@ paths:
                 $ref: '#/components/schemas/InstructorUnavailability'
         "404":
           description: Instructeur non trouvé
+  /instructors/{instructorId}/unavailability/{unavailabilityId}:
+    put:
+      tags:
+        - Disponibilités
+        - Instructeurs
+      summary: Modifier une indisponibilité pour un instructeur
+      parameters:
+        - name: instructorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: unavailabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorUnavailabilityInput'
+        required: true
+      responses:
+        "200":
+          description: Indisponibilité mise à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorUnavailability'
+        "400":
+          description: Requête invalide (ex. données manquantes ou mal formées)
+        "401":
+          description: Non authentifié – un token valide est requis
+        "403":
+          description: Accès refusé – vous n’avez pas les droits nécessaires
+        "404":
+          description: Ressource non trouvée (instructeur ou indisponibilité inexistante)
+        "409":
+          description: Conflit – l'indisponibilité modifiée entre en conflit avec une autre
+        "422":
+          description: Données de validation incorrectes
+        "500":
+          description: Erreur interne du serveur
+
     delete:
       tags:
         - Disponibilités
@@ -1343,14 +1363,10 @@ components:
     InstructorUnavailabilityInput:
       required:
         - endDatetime
-        - instructorId
         - reason
         - startDatetime
       type: object
       properties:
-        instructorId:
-          type: integer
-          format: int64
         startDatetime:
           type: string
           format: date-time
