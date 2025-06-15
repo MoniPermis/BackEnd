@@ -16,7 +16,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Controller('meeting-points')
 export class MeetingPointsController {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly meetingPointService: MeetingPointsService,
   ) {}
 

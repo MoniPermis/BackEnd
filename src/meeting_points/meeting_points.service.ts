@@ -57,7 +57,7 @@ export class MeetingPointsService {
       throw new NotFoundException('Point de rencontre non trouvé');
     }
 
-    return await this.prisma.meetingPoint.delete({
+    await this.prisma.meetingPoint.delete({
       where: { id: meetingPoint.id },
     });
   }
