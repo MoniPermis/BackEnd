@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUnavailabilityDto } from './dto';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
+import { UpdateUnavailabilityDto } from './dto/update-unavailability.dto';
 
 @Injectable()
 export class UnavailabilityService {
@@ -62,7 +63,7 @@ export class UnavailabilityService {
   async modifyUnavailability(
     instructorId: number,
     unavailabilityId: number,
-    unavailabilityData: CreateUnavailabilityDto,
+    unavailabilityData: UpdateUnavailabilityDto,
   ) {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },

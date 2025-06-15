@@ -4,6 +4,7 @@ import { UnavailabilityService } from './unavailability.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
 import { CreateUnavailabilityDto } from './dto';
+import { UpdateUnavailabilityDto } from './dto/update-unavailability.dto';
 
 describe('UnavailabilityService', () => {
   let service: UnavailabilityService;
@@ -441,7 +442,7 @@ describe('UnavailabilityService', () => {
       reason: 'Congés modifiés',
     };
 
-    const mockModifyUnavailabilityDto: CreateUnavailabilityDto = {
+    const mockModifyUnavailabilityDto: UpdateUnavailabilityDto = {
       startDateTime: '2024-06-20T10:00:00Z',
       endDateTime: '2024-06-20T18:00:00Z',
       reason: 'Congés modifiés',
