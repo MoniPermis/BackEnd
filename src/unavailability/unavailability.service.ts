@@ -110,4 +110,37 @@ export class UnavailabilityService {
       },
     });
   }
+
+  async deleteUnavailability(
+    instructorId: number,
+    unavailabilityId: number,
+  ): Promise<void> {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    const unavailability =
+      await this.prisma.instructorUnavailability.findUnique({
+        where: { id: unavailabilityId },
+      });
+    if (!unavailability) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} non trouvée`,
+      );
+    }
+    if (unavailability.instructorId !== instructorId) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} n'appartient pas à l'instructeur avec l'ID ${instructorId}`,
+      );
+    }
+
+    await this.prisma.instructorUnavailability.delete({
+      where: { id: unavailabilityId },
+    });
+  }
 }

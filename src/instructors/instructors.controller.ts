@@ -98,4 +98,16 @@ export class InstructorsController {
       unavailabilityDto,
     );
   }
+
+  @HttpCode(204)
+  @Delete(':instructorId/unavailability/:unavailabilityId')
+  async deleteUnavailability(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Param('unavailabilityId', ParseIntPipe) unavailabilityId: number,
+  ): Promise<void> {
+    await this.unavailabilityService.deleteUnavailability(
+      instructorId,
+      unavailabilityId,
+    );
+  }
 }
