@@ -11,13 +11,10 @@ import {
 } from '@nestjs/common';
 import { CreateMeetingPointDto } from './dto/';
 import { MeetingPointsService } from './meeting_points.service';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 @Controller('meeting-points')
 export class MeetingPointsController {
-  constructor(
-    private readonly meetingPointService: MeetingPointsService,
-  ) {}
+  constructor(private readonly meetingPointService: MeetingPointsService) {}
 
   @Get()
   async getMeetingPoints() {
