@@ -4,7 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateAvailabilityScheduleDto } from './dto';
+import {
+  CreateAvailabilityScheduleDto,
+  UpdateAvailabilityScheduleDto,
+} from './dto';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
 
 @Injectable()
@@ -81,7 +84,7 @@ export class AvailabilityScheduleService {
   async modifyAvailability(
     instructorId: number,
     availabilityId: number,
-    updateData: CreateAvailabilityScheduleDto,
+    updateData: UpdateAvailabilityScheduleDto,
   ) {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
@@ -115,6 +118,8 @@ export class AvailabilityScheduleService {
       instructorId,
       start,
       end,
+      availabilityId,
+      undefined,
     );
 
     this.validateRecurrenceExpiry(updateData);
@@ -169,7 +174,9 @@ export class AvailabilityScheduleService {
     });
   }
 
-  private validateRecurrenceExpiry(data: CreateAvailabilityScheduleDto): void {
+  private validateRecurrenceExpiry(
+    data: CreateAvailabilityScheduleDto | UpdateAvailabilityScheduleDto,
+  ): void {
     const start = new Date(data.startDateTime);
     const end = new Date(data.endDateTime);
 

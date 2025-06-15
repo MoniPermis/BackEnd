@@ -33,3 +33,30 @@ export class CreateAvailabilityScheduleDto {
   @IsString()
   note?: string;
 }
+
+export class UpdateAvailabilityScheduleDto {
+  @IsNotEmpty()
+  @IsDateString()
+  startDateTime: string;
+
+  @IsNotEmpty()
+  @IsDateString()
+  endDateTime: string;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  isRecurring: boolean;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'])
+  recurrenceRule?: string;
+
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}

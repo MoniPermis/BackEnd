@@ -79,6 +79,40 @@ export class InstructorsController {
     );
   }
 
+  @Get(':instructorId/unavailability')
+  async getUnavailabilities(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+  ) {
+    return this.unavailabilityService.getAllUnavailabilitiesByInstructorId(
+      instructorId,
+    );
+  }
+
+  @Put(':instructorId/unavailability/:unavailabilityId')
+  async modifyUnavailability(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Param('unavailabilityId', ParseIntPipe) unavailabilityId: number,
+    @Body() unavailabilityDto: CreateUnavailabilityDto,
+  ) {
+    return this.unavailabilityService.modifyUnavailability(
+      instructorId,
+      unavailabilityId,
+      unavailabilityDto,
+    );
+  }
+
+  @HttpCode(204)
+  @Delete(':instructorId/unavailability/:unavailabilityId')
+  async deleteUnavailability(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Param('unavailabilityId', ParseIntPipe) unavailabilityId: number,
+  ): Promise<void> {
+    await this.unavailabilityService.deleteUnavailability(
+      instructorId,
+      unavailabilityId,
+    );
+  }
+
   @Get(':instructorId/meeting-points')
   async getMeetingPoints(
     @Param('instructorId', ParseIntPipe) instructorId: number,

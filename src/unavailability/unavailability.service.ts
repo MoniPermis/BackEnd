@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUnavailabilityDto } from './dto';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
+import { UpdateUnavailabilityDto } from './dto/update-unavailability.dto';
 
 @Injectable()
 export class UnavailabilityService {
@@ -40,6 +41,106 @@ export class UnavailabilityService {
         endDateTime: new Date(unavailabilityData.endDateTime),
         reason: unavailabilityData.reason,
       },
+    });
+  }
+
+  async getAllUnavailabilitiesByInstructorId(instructorId: number) {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    return this.prisma.instructorUnavailability.findMany({
+      where: { instructorId },
+      orderBy: { startDateTime: 'asc' },
+    });
+  }
+
+  async modifyUnavailability(
+    instructorId: number,
+    unavailabilityId: number,
+    unavailabilityData: UpdateUnavailabilityDto,
+  ) {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    const unavailability =
+      await this.prisma.instructorUnavailability.findUnique({
+        where: { id: unavailabilityId },
+      });
+    if (!unavailability) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} non trouvée`,
+      );
+    }
+    if (unavailability.instructorId !== instructorId) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} n'appartient pas à l'instructeur avec l'ID ${instructorId}`,
+      );
+    }
+
+    const start = new Date(unavailabilityData.startDateTime);
+    const end = new Date(unavailabilityData.endDateTime);
+
+    this.scheduleValidation.validateDateRange(start, end);
+    await this.scheduleValidation.checkScheduleConflictsForUpdate(
+      instructorId,
+      start,
+      end,
+      undefined,
+      unavailabilityId,
+    );
+
+    return this.prisma.instructorUnavailability.update({
+      where: { id: unavailabilityId },
+      data: {
+        startDateTime: start,
+        endDateTime: end,
+        reason: unavailabilityData.reason,
+      },
+    });
+  }
+
+  async deleteUnavailability(
+    instructorId: number,
+    unavailabilityId: number,
+  ): Promise<void> {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    const unavailability =
+      await this.prisma.instructorUnavailability.findUnique({
+        where: { id: unavailabilityId },
+      });
+    if (!unavailability) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} non trouvée`,
+      );
+    }
+    if (unavailability.instructorId !== instructorId) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} n'appartient pas à l'instructeur avec l'ID ${instructorId}`,
+      );
+    }
+
+    await this.prisma.instructorUnavailability.delete({
+      where: { id: unavailabilityId },
     });
   }
 }
