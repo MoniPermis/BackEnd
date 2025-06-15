@@ -1154,20 +1154,34 @@ components:
       properties:
         id:
           type: integer
-        start_time:
+        studentId:
+          type: integer
+          format: int64
+        instructorId:
+          type: integer
+          format: int64
+        meetingPointId:
+          type: integer
+          format: int64
+        paymentId:
+          type: integer
+          format: int64
+        startTime:
           type: string
           format: date-time
-        end_time:
+        endTime:
           type: string
           format: date-time
+        status:
+            type: string
+            enum:
+                - PENDING
+                - CONFIRMED
+                - CANCELLED
+                - NOTATION
+                - COMPLETED
         description:
           type: string
-        is_valid:
-          type: boolean
-        is_accepted:
-          type: boolean
-        pending:
-          type: boolean
         created_at:
           type: string
           format: date-time
@@ -1182,12 +1196,11 @@ components:
           $ref: '#/components/schemas/MeetingPointSummary'
     AppointmentInput:
       required:
-        - description
-        - endTime
+        - studentId
         - instructorId
         - meetingPointId
         - startTime
-        - studentId
+        - endTime
       type: object
       properties:
         studentId:
