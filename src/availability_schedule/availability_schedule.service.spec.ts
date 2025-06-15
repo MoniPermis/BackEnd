@@ -353,6 +353,8 @@ describe('AvailabilityScheduleService', () => {
         instructorId,
         new Date(updateData.startDateTime),
         new Date(updateData.endDateTime),
+        availabilityId,
+        undefined,
       );
       expect(
         mockPrismaService.availabilitySchedule.update,
@@ -596,7 +598,7 @@ describe('AvailabilityScheduleService', () => {
     it('should validate expiry date is after start and end dates for recurring availability', async () => {
       const now = new Date();
 
-      // Date d'expiration dans le futur mais avant les dates de début/fin
+      // Date d'expiration dans le futur, mais avant les dates de début/fin
       const expiryDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Dans 3 jours
       const startDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // Dans 7 jours
       const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // 2 heures après start
@@ -681,6 +683,8 @@ describe('AvailabilityScheduleService', () => {
         instructorId,
         new Date(availabilityData.startDateTime),
         new Date(availabilityData.endDateTime),
+        availabilityId,
+        undefined
       );
       expect(
         mockScheduleValidationService.checkScheduleConflicts,
