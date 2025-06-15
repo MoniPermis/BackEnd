@@ -85,4 +85,14 @@ export class InstructorsController {
       instructorId,
     );
   }
+
+  @Put(':instructorId/unavailability/:unavailabilityId')
+  async modifyUnavailability(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Param('unavailabilityId', ParseIntPipe) unavailabilityId: number,
+    @Body() unavailabilityDto: CreateUnavailabilityDto,
+  ) {
+    return this.unavailabilityService.modifyUnavailability(
+      instructorId, unavailabilityId, unavailabilityDto)
+  }
 }
