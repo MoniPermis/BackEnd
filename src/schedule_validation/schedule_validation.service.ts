@@ -101,8 +101,6 @@ export class ScheduleValidationService {
     const conflictingAppointments = await this.prisma.appointment.findMany({
       where: {
         instructorId,
-        isAccepted: true,
-        isValid: true,
         AND: [
           {
             OR: [
@@ -280,8 +278,6 @@ export class ScheduleValidationService {
     const conflictingAppointments = await this.prisma.appointment.findMany({
       where: {
         instructorId,
-        isAccepted: true,
-        isValid: true,
         AND: [
           {
             OR: [

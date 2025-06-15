@@ -236,8 +236,6 @@ describe('ScheduleValidationService', () => {
       expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
         where: {
           instructorId,
-          isAccepted: true,
-          isValid: true,
           AND: [
             {
               OR: [
@@ -446,8 +444,6 @@ describe('ScheduleValidationService', () => {
       expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
         where: {
           instructorId,
-          isAccepted: true,
-          isValid: true,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           AND: expect.any(Array),
         },
