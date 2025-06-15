@@ -115,6 +115,8 @@ export class AvailabilityScheduleService {
       instructorId,
       start,
       end,
+      availabilityId,
+      undefined,
     );
 
     this.validateRecurrenceExpiry(updateData);
