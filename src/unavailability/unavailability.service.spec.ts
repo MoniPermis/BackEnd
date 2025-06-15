@@ -18,6 +18,7 @@ describe('UnavailabilityService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
   };
 
@@ -738,6 +739,159 @@ describe('UnavailabilityService', () => {
           reason: mockModifyUnavailabilityDto.reason,
         },
       });
+    });
+  });
+
+  describe('deleteUnavailability', () => {
+    const instructorId = 1;
+    const unavailabilityId = 1;
+
+    beforeEach(() => {
+      mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
+      mockPrismaService.instructorUnavailability.findUnique.mockResolvedValue(
+        mockUnavailability,
+      );
+      mockPrismaService.instructorUnavailability.delete = jest
+        .fn()
+        .mockResolvedValue(undefined);
+    });
+
+    it('should delete unavailability successfully when instructor and unavailability exist', async () => {
+      await service.deleteUnavailability(instructorId, unavailabilityId);
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.findUnique,
+      ).toHaveBeenCalledWith({
+        where: { id: unavailabilityId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.delete,
+      ).toHaveBeenCalledWith({
+        where: { id: unavailabilityId },
+      });
+    });
+
+    it('should throw NotFoundException when instructor does not exist', async () => {
+      mockPrismaService.instructor.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.deleteUnavailability(instructorId, unavailabilityId),
+      ).rejects.toThrow(NotFoundException);
+
+      await expect(
+        service.deleteUnavailability(instructorId, unavailabilityId),
+      ).rejects.toThrow(`Instructeur avec l'ID ${instructorId} non trouvé`);
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.findUnique,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.instructorUnavailability.delete,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when unavailability does not exist', async () => {
+      mockPrismaService.instructorUnavailability.findUnique.mockResolvedValue(
+        null,
+      );
+
+      await expect(
+        service.deleteUnavailability(instructorId, unavailabilityId),
+      ).rejects.toThrow(NotFoundException);
+
+      await expect(
+        service.deleteUnavailability(instructorId, unavailabilityId),
+      ).rejects.toThrow(
+        `Indisponibilité avec l'ID ${unavailabilityId} non trouvée`,
+      );
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.findUnique,
+      ).toHaveBeenCalledWith({
+        where: { id: unavailabilityId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.delete,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when unavailability does not belong to the instructor', async () => {
+      const unavailabilityOfAnotherInstructor = {
+        ...mockUnavailability,
+        instructorId: 2, // Different instructor ID
+      };
+      mockPrismaService.instructorUnavailability.findUnique.mockResolvedValue(
+        unavailabilityOfAnotherInstructor,
+      );
+
+      await expect(
+        service.deleteUnavailability(instructorId, unavailabilityId),
+      ).rejects.toThrow(NotFoundException);
+
+      await expect(
+        service.deleteUnavailability(instructorId, unavailabilityId),
+      ).rejects.toThrow(
+        `Indisponibilité avec l'ID ${unavailabilityId} n'appartient pas à l'instructeur avec l'ID ${instructorId}`,
+      );
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.findUnique,
+      ).toHaveBeenCalledWith({
+        where: { id: unavailabilityId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.delete,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should handle Prisma errors during unavailability deletion', async () => {
+      const prismaError = new Error('Database error during deletion');
+      mockPrismaService.instructorUnavailability.delete.mockRejectedValue(
+        prismaError,
+      );
+
+      await expect(
+        service.deleteUnavailability(instructorId, unavailabilityId),
+      ).rejects.toThrow(prismaError);
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.findUnique,
+      ).toHaveBeenCalledWith({
+        where: { id: unavailabilityId },
+      });
+      expect(
+        mockPrismaService.instructorUnavailability.delete,
+      ).toHaveBeenCalledWith({
+        where: { id: unavailabilityId },
+      });
+    });
+
+    it('should handle non-numeric instructor id', async () => {
+      const nonNumericId = 'abc' as unknown as number;
+
+      await expect(
+        service.deleteUnavailability(nonNumericId, unavailabilityId),
+      ).rejects.toThrow();
+
+      // The specific error might depend on how the service and Prisma handle invalid IDs
+      expect(
+        mockPrismaService.instructorUnavailability.delete,
+      ).not.toHaveBeenCalled();
     });
   });
 });
