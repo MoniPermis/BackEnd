@@ -58,4 +58,50 @@ export class UnavailabilityService {
       orderBy: { startDateTime: 'asc' },
     });
   }
+
+  async modifyUnavailability(instructorId: number, unavailabilityId: number, unavailabilityData: CreateUnavailabilityDto) {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Instructeur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    const unavailability = await this.prisma.instructorUnavailability.findUnique({
+      where: { id: unavailabilityId },
+    });
+    if (!unavailability) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} non trouvée`,
+      );
+    }
+    if (unavailability.instructorId !== instructorId) {
+      throw new NotFoundException(
+        `Indisponibilité avec l'ID ${unavailabilityId} n'appartient pas à l'instructeur avec l'ID ${instructorId}`,
+      );
+    }
+
+    const start = new Date(unavailabilityData.startDateTime);
+    const end = new Date(unavailabilityData.endDateTime);
+
+    this.scheduleValidation.validateDateRange(start, end);
+    await this.scheduleValidation.checkScheduleConflictsForUpdate(
+      instructorId,
+      start,
+      end,
+      undefined,
+      unavailabilityId,
+    );
+
+    return this.prisma.instructorUnavailability.update({
+      where: { id: unavailabilityId },
+      data: {
+        startDateTime: start,
+        endDateTime: end,
+        reason: unavailabilityData.reason,
+      },
+    });
+  }
 }
