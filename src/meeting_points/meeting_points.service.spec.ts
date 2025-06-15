@@ -2,12 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MeetingPointsService } from './meeting_points.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
-import exp from 'constants';
-import e from 'express';
 
 describe('MeetingPointsService', () => {
   let service: MeetingPointsService;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     meetingPoint: {
@@ -41,52 +38,52 @@ describe('MeetingPointsService', () => {
   describe('getAll', () => {
     it('should return all meeting points', async () => {
       const fakedata = [
-          {
-              "id": 8,
-              "instructorId": 1,
-              "longitude": 0,
-              "latitude": 0,
-              "name": "string",
-              "createdAt": "2025-06-15T00:00:00.000Z",
-              "modifiedAt": "2025-06-15T00:00:00.000Z"
-          },
-          {
-              "id": 9,
-              "instructorId": 1,
-              "longitude": 0,
-              "latitude": 0,
-              "name": "string",
-              "createdAt": "2025-06-15T00:00:00.000Z",
-              "modifiedAt": "2025-06-15T00:00:00.000Z"
-          },
-          {
-              "id": 4,
-              "instructorId": 1,
-              "longitude": 0.66,
-              "latitude": 0.88,
-              "name": "strinnnnnng",
-              "createdAt": "2025-06-15T00:00:00.000Z",
-              "modifiedAt": "2025-06-15T00:00:00.000Z"
-          },
-          {
-              "id": 6,
-              "instructorId": 2,
-              "longitude": 0,
-              "latitude": 0,
-              "name": "string",
-              "createdAt": "2025-06-15T00:00:00.000Z",
-              "modifiedAt": "2025-06-15T00:00:00.000Z"
-          },
-          {
-              "id": 7,
-              "instructorId": 2,
-              "longitude": 0,
-              "latitude": 0,
-              "name": "string",
-              "createdAt": "2025-06-15T00:00:00.000Z",
-              "modifiedAt": "2025-06-15T00:00:00.000Z"
-          }
-      ]
+        {
+          id: 8,
+          instructorId: 1,
+          longitude: 0,
+          latitude: 0,
+          name: 'string',
+          createdAt: '2025-06-15T00:00:00.000Z',
+          modifiedAt: '2025-06-15T00:00:00.000Z',
+        },
+        {
+          id: 9,
+          instructorId: 1,
+          longitude: 0,
+          latitude: 0,
+          name: 'string',
+          createdAt: '2025-06-15T00:00:00.000Z',
+          modifiedAt: '2025-06-15T00:00:00.000Z',
+        },
+        {
+          id: 4,
+          instructorId: 1,
+          longitude: 0.66,
+          latitude: 0.88,
+          name: 'strinnnnnng',
+          createdAt: '2025-06-15T00:00:00.000Z',
+          modifiedAt: '2025-06-15T00:00:00.000Z',
+        },
+        {
+          id: 6,
+          instructorId: 2,
+          longitude: 0,
+          latitude: 0,
+          name: 'string',
+          createdAt: '2025-06-15T00:00:00.000Z',
+          modifiedAt: '2025-06-15T00:00:00.000Z',
+        },
+        {
+          id: 7,
+          instructorId: 2,
+          longitude: 0,
+          latitude: 0,
+          name: 'string',
+          createdAt: '2025-06-15T00:00:00.000Z',
+          modifiedAt: '2025-06-15T00:00:00.000Z',
+        },
+      ];
       mockPrisma.meetingPoint.findMany.mockResolvedValue(fakedata);
 
       expect(await service.getAll()).toEqual(fakedata);
@@ -117,25 +114,25 @@ describe('MeetingPointsService', () => {
       const instructor = {
         id: 2,
         priceId: 2,
-        firstName: "hugo",
-        lastName: "boss",
-        gender: "male",
-        email: "user2@example.com",
-        phoneNumber: "0909090909",
-        address: "this is fake address",
-        password: "password123",
-        siret: "1235",
-        driverLicenceUrl: "string",
-        registrationCertificateUrl: "string",
-        insuranceCertificateUrl: "string",
-        degreeUrl: "string",
-        teachingAuthorizationUrl: "string",
-        profilePictureUrl: "",
-        createdAt: "2025-06-15T00:00:00.000Z",
-        updatedAt: "2025-06-15T00:00:00.000Z",
-        iban: "12431",
-        bic: "123"
-      }
+        firstName: 'hugo',
+        lastName: 'boss',
+        gender: 'male',
+        email: 'user2@example.com',
+        phoneNumber: '0909090909',
+        address: 'this is fake address',
+        password: 'password123',
+        siret: '1235',
+        driverLicenceUrl: 'string',
+        registrationCertificateUrl: 'string',
+        insuranceCertificateUrl: 'string',
+        degreeUrl: 'string',
+        teachingAuthorizationUrl: 'string',
+        profilePictureUrl: '',
+        createdAt: '2025-06-15T00:00:00.000Z',
+        updatedAt: '2025-06-15T00:00:00.000Z',
+        iban: '12431',
+        bic: '123',
+      };
       mockPrisma.instructor.findUnique.mockResolvedValue(instructor);
       const meetingPoint = {
         id: 1,
@@ -188,7 +185,9 @@ describe('MeetingPointsService', () => {
       };
       const param = 1;
 
-      await expect(service.modify(param, dto)).rejects.toThrow(NotFoundException);
+      await expect(service.modify(param, dto)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrisma.meetingPoint.findUnique).toHaveBeenCalledWith({
         where: { id: param },
       });
@@ -204,18 +203,15 @@ describe('MeetingPointsService', () => {
         name: 'Old Name',
         longitude: 1.1,
         latitude: 2.2,
-        createdAt: expect.any(Date),
-        modifiedAt: expect.any(Date),
       };
       mockPrisma.meetingPoint.findUnique.mockResolvedValue(meetingPoint);
-      const updated ={
+      const updated = {
         id: 1,
         instructorId: 1,
         name: 'New Name',
         longitude: 1.1,
         latitude: 2.2,
         createdAt: new Date(),
-        modifiedAt: expect.any(Date),
       };
       mockPrisma.meetingPoint.update.mockResolvedValue(updated);
 
@@ -230,7 +226,7 @@ describe('MeetingPointsService', () => {
 
       expect(result).toEqual(updated);
       expect(mockPrisma.meetingPoint.findUnique).toHaveBeenCalledWith({
-        where: { id:  param },
+        where: { id: param },
       });
       expect(mockPrisma.meetingPoint.findUnique).toHaveBeenCalledTimes(1);
       expect(mockPrisma.meetingPoint.update).toHaveBeenCalledWith({
@@ -267,8 +263,6 @@ describe('MeetingPointsService', () => {
         name: 'Old Name',
         longitude: 1.1,
         latitude: 2.2,
-        createdAt: expect.any(Date),
-        modifiedAt: expect.any(Date),
       };
       mockPrisma.meetingPoint.findUnique.mockResolvedValue(meetingPoint);
       mockPrisma.meetingPoint.delete.mockResolvedValue(undefined);
@@ -291,7 +285,9 @@ describe('MeetingPointsService', () => {
     it('should throw if instructor not found', async () => {
       const param = 1;
       mockPrisma.instructor.findUnique.mockResolvedValue(null);
-      await expect(service.getMeetingPointsByInstructorId(param)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.getMeetingPointsByInstructorId(param),
+      ).rejects.toThrow(NotFoundException);
       expect(mockPrisma.instructor.findUnique).toHaveBeenCalledWith({
         where: { id: param },
       });
@@ -304,46 +300,46 @@ describe('MeetingPointsService', () => {
       const instructor = {
         id: 2,
         priceId: 2,
-        firstName: "hugo",
-        lastName: "boss",
-        gender: "male",
-        email: "user2@example.com",
-        phoneNumber: "0909090909",
-        address: "this is fake address",
-        password: "password123",
-        siret: "1235",
-        driverLicenceUrl: "string",
-        registrationCertificateUrl: "string",
-        insuranceCertificateUrl: "string",
-        degreeUrl: "string",
-        teachingAuthorizationUrl: "string",
-        profilePictureUrl: "",
-        createdAt: "2025-06-15T00:00:00.000Z",
-        updatedAt: "2025-06-15T00:00:00.000Z",
-        iban: "12431",
-        bic: "123"
-      }
+        firstName: 'hugo',
+        lastName: 'boss',
+        gender: 'male',
+        email: 'user2@example.com',
+        phoneNumber: '0909090909',
+        address: 'this is fake address',
+        password: 'password123',
+        siret: '1235',
+        driverLicenceUrl: 'string',
+        registrationCertificateUrl: 'string',
+        insuranceCertificateUrl: 'string',
+        degreeUrl: 'string',
+        teachingAuthorizationUrl: 'string',
+        profilePictureUrl: '',
+        createdAt: '2025-06-15T00:00:00.000Z',
+        updatedAt: '2025-06-15T00:00:00.000Z',
+        iban: '12431',
+        bic: '123',
+      };
       mockPrisma.instructor.findUnique.mockResolvedValue(instructor);
       const fakedata = [
-          {
-              "id": 6,
-              "instructorId": 2,
-              "longitude": 0,
-              "latitude": 0,
-              "name": "string",
-              "createdAt": "2025-06-15T00:00:00.000Z",
-              "modifiedAt": "2025-06-15T00:00:00.000Z"
-          },
-          {
-              "id": 7,
-              "instructorId": 2,
-              "longitude": 0,
-              "latitude": 0,
-              "name": "string",
-              "createdAt": "2025-06-15T00:00:00.000Z",
-              "modifiedAt": "2025-06-15T00:00:00.000Z"
-          }
-      ]
+        {
+          id: 6,
+          instructorId: 2,
+          longitude: 0,
+          latitude: 0,
+          name: 'string',
+          createdAt: '2025-06-15T00:00:00.000Z',
+          modifiedAt: '2025-06-15T00:00:00.000Z',
+        },
+        {
+          id: 7,
+          instructorId: 2,
+          longitude: 0,
+          latitude: 0,
+          name: 'string',
+          createdAt: '2025-06-15T00:00:00.000Z',
+          modifiedAt: '2025-06-15T00:00:00.000Z',
+        },
+      ];
       mockPrisma.meetingPoint.findMany.mockResolvedValue(fakedata);
 
       const result = await service.getMeetingPointsByInstructorId(param);
