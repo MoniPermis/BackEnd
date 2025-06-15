@@ -684,7 +684,7 @@ describe('AvailabilityScheduleService', () => {
         new Date(availabilityData.startDateTime),
         new Date(availabilityData.endDateTime),
         availabilityId,
-        undefined
+        undefined,
       );
       expect(
         mockScheduleValidationService.checkScheduleConflicts,

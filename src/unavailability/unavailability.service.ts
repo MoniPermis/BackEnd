@@ -59,7 +59,11 @@ export class UnavailabilityService {
     });
   }
 
-  async modifyUnavailability(instructorId: number, unavailabilityId: number, unavailabilityData: CreateUnavailabilityDto) {
+  async modifyUnavailability(
+    instructorId: number,
+    unavailabilityId: number,
+    unavailabilityData: CreateUnavailabilityDto,
+  ) {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
     });
@@ -69,9 +73,10 @@ export class UnavailabilityService {
       );
     }
 
-    const unavailability = await this.prisma.instructorUnavailability.findUnique({
-      where: { id: unavailabilityId },
-    });
+    const unavailability =
+      await this.prisma.instructorUnavailability.findUnique({
+        where: { id: unavailabilityId },
+      });
     if (!unavailability) {
       throw new NotFoundException(
         `Indisponibilité avec l'ID ${unavailabilityId} non trouvée`,

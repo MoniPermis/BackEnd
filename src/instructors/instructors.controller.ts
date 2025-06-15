@@ -93,6 +93,9 @@ export class InstructorsController {
     @Body() unavailabilityDto: CreateUnavailabilityDto,
   ) {
     return this.unavailabilityService.modifyUnavailability(
-      instructorId, unavailabilityId, unavailabilityDto)
+      instructorId,
+      unavailabilityId,
+      unavailabilityDto,
+    );
   }
 }

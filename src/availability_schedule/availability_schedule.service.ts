@@ -116,7 +116,7 @@ export class AvailabilityScheduleService {
       start,
       end,
       availabilityId,
-      undefined
+      undefined,
     );
 
     this.validateRecurrenceExpiry(updateData);

@@ -791,11 +791,17 @@ paths:
           schema:
             type: integer
             format: int64
+        - name: unavailabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
         "204":
-          description: Indisponibilité supprimer avec succès
+          description: Indisponibilité supprimée avec succès
         "404":
-          description: Instructeur non trouvé
+          description: Ressource non trouvée (instructeur ou indisponibilité inexistante)
   /payments:
     post:
       tags:
