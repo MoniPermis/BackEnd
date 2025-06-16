@@ -14,18 +14,18 @@ import { MeetingPointsService } from './meeting_points.service';
 
 @Controller('meeting-points')
 export class MeetingPointsController {
-  constructor(private readonly meetingPointService: MeetingPointsService) {}
+  constructor(private readonly meetingPointsService: MeetingPointsService) {}
 
   @Get()
   async getMeetingPoints() {
-    return await this.meetingPointService.getAll();
+    return await this.meetingPointsService.getAll();
   }
 
   @Post()
   async createMeetingPoint(
     @Body() createMeetingPointDto: CreateMeetingPointDto,
   ) {
-    return await this.meetingPointService.create(createMeetingPointDto);
+    return await this.meetingPointsService.create(createMeetingPointDto);
   }
 
   @Put(':id')
@@ -33,12 +33,12 @@ export class MeetingPointsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() createMeetingPointDto: CreateMeetingPointDto,
   ) {
-    return await this.meetingPointService.modify(id, createMeetingPointDto);
+    return await this.meetingPointsService.modify(id, createMeetingPointDto);
   }
 
   @Delete(':id')
   @HttpCode(204)
   async deleteMeetingPoint(@Param('id', ParseIntPipe) id: number) {
-    return await this.meetingPointService.delete(id);
+    return await this.meetingPointsService.delete(id);
   }
 }
