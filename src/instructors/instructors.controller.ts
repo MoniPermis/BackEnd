@@ -29,12 +29,12 @@ export class InstructorsController {
   async getInstructorById(
     @Param('instructorId', ParseIntPipe) instructorId: number,
   ) {
-    return this.instructorsService.getInstructorById(instructorId);
+    return await this.instructorsService.getInstructorById(instructorId);
   }
 
   @Get()
   async getAllInstructors() {
-    return this.instructorsService.getAllInstructors();
+    return await this.instructorsService.getAllInstructors();
   }
 
   @Post(':instructorId/availability')

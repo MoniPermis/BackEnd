@@ -84,7 +84,7 @@ describe('InstructorsService', () => {
     });
   });
 
-  describe('getMeetingPointsByInstructorId', () => {
+  describe('getInstructorById', () => {
     it('should throw if instructor not found', async () => {
       const param = 1;
       mockPrisma.instructor.findUnique.mockResolvedValue(null);
@@ -99,7 +99,7 @@ describe('InstructorsService', () => {
       expect(mockPrisma.instructor.findUnique).toHaveBeenCalledTimes(1);
     });
 
-    it('should return meeting points if instructor exists', async () => {
+    it('should return instructor if instructor exists', async () => {
       const param = 2;
       const instructor = {
         id: 2,
