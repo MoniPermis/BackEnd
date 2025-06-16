@@ -13,12 +13,14 @@ import { AvailabilityScheduleService } from '../availability_schedule/availabili
 import { CreateAvailabilityScheduleDto } from '../availability_schedule/dto';
 import { CreateUnavailabilityDto } from '../unavailability/dto';
 import { UnavailabilityService } from '../unavailability/unavailability.service';
+import { MeetingPointsService } from 'src/meeting_points/meeting_points.service';
 
 @Controller('instructors')
 export class InstructorsController {
   constructor(
     private readonly availabilityScheduleService: AvailabilityScheduleService,
     private readonly unavailabilityService: UnavailabilityService,
+    private readonly meetingPointsService: MeetingPointsService,
   ) {}
 
   @Post(':instructorId/availability')
@@ -108,6 +110,15 @@ export class InstructorsController {
     await this.unavailabilityService.deleteUnavailability(
       instructorId,
       unavailabilityId,
+    );
+  }
+
+  @Get(':instructorId/meeting-points')
+  async getMeetingPoints(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+  ) {
+    return this.meetingPointsService.getMeetingPointsByInstructorId(
+      instructorId,
     );
   }
 }

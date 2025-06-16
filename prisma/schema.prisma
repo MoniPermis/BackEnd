@@ -134,7 +134,8 @@ model Appointment {
 model MeetingPoint {
   id           Int      @id @default(autoincrement())
   instructorId Int      @map("instructor_id")
-  location     String // Note: PostgreSQL geography type mapped to String
+  longitude    Float    @db.DoublePrecision
+  latitude     Float    @db.DoublePrecision
   name         String   @db.VarChar(255)
   createdAt    DateTime @map("created_at") @db.Date
   modifiedAt   DateTime @map("modified_at") @db.Date
