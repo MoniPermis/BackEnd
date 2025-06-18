@@ -10,6 +10,6 @@ import { MeetingPointsModule } from './meeting_points/meeting_points.module';
 @Module({
   imports: [InstructorsModule, ScheduleValidationModule, AppointmentModule, MeetingPointsModule],
   controllers: [AppController],
-  providers: [AppService, AppointmentService],
+  providers: [AppService],
 })
 export class AppModule {}
