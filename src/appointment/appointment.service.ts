@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
@@ -15,7 +15,7 @@ export class AppointmentService {
       where: { id: appointmentData.instructorId },
     });
     if (!instructor) {
-      throw new Error(
+      throw new NotFoundException(
         `Moniteur avec l'ID ${appointmentData.instructorId} non trouvé`,
       );
     }
