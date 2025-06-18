@@ -370,4 +370,129 @@ export class ScheduleValidationService {
       );
     }
   }
+
+  public async checkAppointmentConflicts(
+    instructorId: number,
+    startDateTime: Date,
+    endDateTime: Date,
+    excludeAppointmentId?: number,
+  ) {
+    // Check if there is covering availability for the appointment
+    const coveringAvailability =
+      await this.prisma.availabilitySchedule.findFirst({
+        where: {
+          instructorId,
+          startDateTime: { lte: startDateTime },
+          endDateTime: { gte: endDateTime },
+        },
+      });
+
+    if (!coveringAvailability) {
+      throw new BadRequestException(
+        'Aucune disponibilité ne couvre entièrement ce créneau de rendez-vous',
+      );
+    }
+
+    // Check if there are unavailability conflicts
+    const conflictingUnavailabilities =
+      await this.prisma.instructorUnavailability.findMany({
+        where: {
+          instructorId,
+          OR: [
+            // Unavailability starts during the appointment
+            {
+              startDateTime: {
+                gte: startDateTime,
+                lt: endDateTime,
+              },
+            },
+            // Unavailability ends during the appointment
+            {
+              endDateTime: {
+                gt: startDateTime,
+                lte: endDateTime,
+              },
+            },
+            // Unavailability completely covers the appointment
+            {
+              startDateTime: { lte: startDateTime },
+              endDateTime: { gte: endDateTime },
+            },
+            // Appointment completely covers the unavailability
+            {
+              startDateTime: { gte: startDateTime },
+              endDateTime: { lte: endDateTime },
+            },
+          ],
+        },
+      });
+
+    if (conflictingUnavailabilities.length > 0) {
+      const conflictDates = conflictingUnavailabilities
+        .map(
+          (unavail) =>
+            `${unavail.startDateTime.toISOString()} - ${unavail.endDateTime.toISOString()}`,
+        )
+        .join(', ');
+
+      throw new ConflictException(
+        `Conflit avec les indisponibilités: ${conflictDates}`,
+      );
+    }
+
+    // Check if there are appointment conflicts
+    const conflictingAppointments = await this.prisma.appointment.findMany({
+      where: {
+        instructorId,
+        // Exclude the appointment being updated
+        ...(excludeAppointmentId && {
+          id: { not: excludeAppointmentId },
+        }),
+        OR: [
+          // Another appointment starts during this appointment
+          {
+            startTime: {
+              gte: startDateTime,
+              lt: endDateTime,
+            },
+          },
+          // Another appointment ends during this appointment
+          {
+            endTime: {
+              gt: startDateTime,
+              lte: endDateTime,
+            },
+          },
+          // Another appointment completely covers this appointment
+          {
+            startTime: { lte: startDateTime },
+            endTime: { gte: endDateTime },
+          },
+          // This appointment completely covers another appointment
+          {
+            startTime: { gte: startDateTime },
+            endTime: { lte: endDateTime },
+          },
+        ],
+      },
+    });
+
+    if (conflictingAppointments.length > 0) {
+      const conflictDates = conflictingAppointments
+        .map(
+          (appt) =>
+            `${appt.startTime.toISOString()} - ${appt.endTime.toISOString()}`,
+        )
+        .join(', ');
+
+      throw new ConflictException(
+        `Conflit avec d'autres rendez-vous: ${conflictDates}`,
+      );
+    }
+
+    return {
+      coveringAvailability,
+      message: 'Aucun conflit détecté pour ce rendez-vous.',
+    };
+  }
 }
