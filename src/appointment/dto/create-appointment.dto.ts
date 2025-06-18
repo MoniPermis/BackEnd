@@ -1,4 +1,10 @@
-import { IsString, IsDateString, IsNotEmpty, IsOptional, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsDateString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+} from 'class-validator';
 
 export class CreateAppointmentDto {
   @IsNotEmpty()
