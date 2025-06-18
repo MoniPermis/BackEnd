@@ -108,27 +108,33 @@ model CreditCard {
 }
 
 model Appointment {
-  id             Int      @id @default(autoincrement())
-  studentId      Int      @map("student_id")
-  instructorId   Int      @map("instructor_id")
-  meetingPointId Int      @map("meeting_point_id")
-  paymentId      Int      @map("payment_id")
-  startTime      DateTime @map("start_time") @db.Date
-  endTime        DateTime @map("end_time") @db.Date
-  description    String   @db.VarChar(255)
-  pending        Boolean  @default(true)
-  isAccepted     Boolean  @map("is_accepted")
-  isValid        Boolean  @map("is_valid")
-  createdAt      DateTime @map("created_at") @db.Date
-  modifiedAt     DateTime @map("modified_at") @db.Date
+  id             Int               @id @default(autoincrement())
+  studentId      Int               @map("student_id")
+  instructorId   Int               @map("instructor_id")
+  meetingPointId Int               @map("meeting_point_id")
+  paymentId      Int?              @map("payment_id")
+  startTime      DateTime          @map("start_time")
+  endTime        DateTime          @map("end_time")
+  status         AppointmentStatus @default(PENDING) @map("status")
+  description    String?           @db.VarChar(255)
+  createdAt      DateTime          @map("created_at") @db.Date
+  modifiedAt     DateTime          @map("modified_at") @db.Date
 
   // Relations
   student      Student      @relation(fields: [studentId], references: [id])
   instructor   Instructor   @relation(fields: [instructorId], references: [id])
   meetingPoint MeetingPoint @relation(fields: [meetingPointId], references: [id])
-  payment      Payment      @relation(fields: [paymentId], references: [id])
+  payment      Payment?     @relation(fields: [paymentId], references: [id])
 
   @@map("appointment")
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  NOTATION
+  COMPLETED
 }
 
 model MeetingPoint {
