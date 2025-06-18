@@ -9,6 +9,7 @@ describe('ScheduleValidationService', () => {
   const mockPrismaService = {
     availabilitySchedule: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
     },
     instructorUnavailability: {
       findMany: jest.fn(),
@@ -578,6 +579,310 @@ describe('ScheduleValidationService', () => {
       expect(
         mockPrismaService.availabilitySchedule.findMany,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('checkAppointmentConflicts', () => {
+    const instructorId = 1;
+    const now = new Date();
+    const startDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
+    const endDateTime = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000,
+    ); // Tomorrow + 2h
+
+    beforeEach(() => {
+      // Reset all mocks before each test
+      mockPrismaService.availabilitySchedule.findFirst.mockResolvedValue(null);
+      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([]);
+      mockPrismaService.appointment.findMany.mockResolvedValue([]);
+    });
+
+    it('should pass when there is covering availability and no conflicts', async () => {
+      const coveringAvailability = {
+        id: 1,
+        instructorId,
+        startDateTime: new Date(startDateTime.getTime() - 60 * 60 * 1000), // 1h before
+        endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000), // 1h after
+      };
+
+      mockPrismaService.availabilitySchedule.findFirst.mockResolvedValue(
+        coveringAvailability,
+      );
+
+      const result = await service.checkAppointmentConflicts(
+        instructorId,
+        startDateTime,
+        endDateTime,
+      );
+
+      expect(result.coveringAvailability).toEqual(coveringAvailability);
+      expect(result.message).toBe('Aucun conflit détecté pour ce rendez-vous.');
+
+      expect(
+        mockPrismaService.availabilitySchedule.findFirst,
+      ).toHaveBeenCalledWith({
+        where: {
+          instructorId,
+          startDateTime: { lte: startDateTime },
+          endDateTime: { gte: endDateTime },
+        },
+      });
+    });
+
+    it('should throw BadRequestException when no covering availability exists', async () => {
+      mockPrismaService.availabilitySchedule.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.checkAppointmentConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.checkAppointmentConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
+      ).rejects.toThrow(
+        'Aucune disponibilité ne couvre entièrement ce créneau de rendez-vous',
+      );
+    });
+
+    it('should throw ConflictException when unavailabilities overlap', async () => {
+      const coveringAvailability = {
+        id: 1,
+        instructorId,
+        startDateTime: new Date(startDateTime.getTime() - 60 * 60 * 1000),
+        endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000),
+      };
+      mockPrismaService.availabilitySchedule.findFirst.mockResolvedValue(
+        coveringAvailability,
+      );
+
+      const conflictingUnavailability = {
+        id: 1,
+        startDateTime: new Date(startDateTime.getTime() + 30 * 60 * 1000),
+        endDateTime: new Date(endDateTime.getTime() - 30 * 60 * 1000),
+      };
+
+      mockPrismaService.instructorUnavailability.findMany.mockResolvedValue([
+        conflictingUnavailability,
+      ]);
+
+      await expect(
+        service.checkAppointmentConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
+      ).rejects.toThrow(ConflictException);
+
+      await expect(
+        service.checkAppointmentConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
+      ).rejects.toThrow('Conflit avec les indisponibilités:');
+
+      expect(
+        mockPrismaService.instructorUnavailability.findMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          instructorId,
+          OR: [
+            {
+              startDateTime: {
+                gte: startDateTime,
+                lt: endDateTime,
+              },
+            },
+            {
+              endDateTime: {
+                gt: startDateTime,
+                lte: endDateTime,
+              },
+            },
+            {
+              startDateTime: { lte: startDateTime },
+              endDateTime: { gte: endDateTime },
+            },
+            {
+              startDateTime: { gte: startDateTime },
+              endDateTime: { lte: endDateTime },
+            },
+          ],
+        },
+      });
+    });
+
+    it('should throw ConflictException when other appointments overlap', async () => {
+      const coveringAvailability = {
+        id: 1,
+        instructorId,
+        startDateTime: new Date(startDateTime.getTime() - 60 * 60 * 1000),
+        endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000),
+      };
+      mockPrismaService.availabilitySchedule.findFirst.mockResolvedValue(
+        coveringAvailability,
+      );
+
+      const conflictingAppointment = {
+        id: 1,
+        startTime: new Date(startDateTime.getTime() + 30 * 60 * 1000),
+        endTime: new Date(endDateTime.getTime() - 30 * 60 * 1000),
+      };
+
+      mockPrismaService.appointment.findMany.mockResolvedValue([
+        conflictingAppointment,
+      ]);
+
+      await expect(
+        service.checkAppointmentConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
+      ).rejects.toThrow(ConflictException);
+
+      await expect(
+        service.checkAppointmentConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        ),
+      ).rejects.toThrow("Conflit avec d'autres rendez-vous:");
+
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: {
+          instructorId,
+          OR: [
+            {
+              startTime: {
+                gte: startDateTime,
+                lt: endDateTime,
+              },
+            },
+            {
+              endTime: {
+                gt: startDateTime,
+                lte: endDateTime,
+              },
+            },
+            {
+              startTime: { lte: startDateTime },
+              endTime: { gte: endDateTime },
+            },
+            {
+              startTime: { gte: startDateTime },
+              endTime: { lte: endDateTime },
+            },
+          ],
+        },
+      });
+    });
+
+    it('should exclude appointment being updated from conflict check', async () => {
+      const excludeAppointmentId = 5;
+      const coveringAvailability = {
+        id: 1,
+        instructorId,
+        startDateTime: new Date(startDateTime.getTime() - 60 * 60 * 1000),
+        endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000),
+      };
+
+      mockPrismaService.availabilitySchedule.findFirst.mockResolvedValue(
+        coveringAvailability,
+      );
+      mockPrismaService.appointment.findMany.mockResolvedValue([]);
+
+      await service.checkAppointmentConflicts(
+        instructorId,
+        startDateTime,
+        endDateTime,
+        excludeAppointmentId,
+      );
+
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: {
+          instructorId,
+          id: { not: excludeAppointmentId },
+          OR: [
+            {
+              startTime: {
+                gte: startDateTime,
+                lt: endDateTime,
+              },
+            },
+            {
+              endTime: {
+                gt: startDateTime,
+                lte: endDateTime,
+              },
+            },
+            {
+              startTime: { lte: startDateTime },
+              endTime: { gte: endDateTime },
+            },
+            {
+              startTime: { gte: startDateTime },
+              endTime: { lte: endDateTime },
+            },
+          ],
+        },
+      });
+    });
+
+    it('should include multiple conflicts in error messages', async () => {
+      const coveringAvailability = {
+        id: 1,
+        instructorId,
+        startDateTime: new Date(startDateTime.getTime() - 60 * 60 * 1000),
+        endDateTime: new Date(endDateTime.getTime() + 60 * 60 * 1000),
+      };
+      mockPrismaService.availabilitySchedule.findFirst.mockResolvedValue(
+        coveringAvailability,
+      );
+
+      const conflictingAppointments = [
+        {
+          id: 2,
+          startTime: new Date(startDateTime.getTime() + 15 * 60 * 1000),
+          endTime: new Date(startDateTime.getTime() + 45 * 60 * 1000),
+        },
+        {
+          id: 3,
+          startTime: new Date(endDateTime.getTime() - 30 * 60 * 1000),
+          endTime: new Date(endDateTime.getTime() + 30 * 60 * 1000),
+        },
+      ];
+
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        conflictingAppointments,
+      );
+
+      try {
+        await service.checkAppointmentConflicts(
+          instructorId,
+          startDateTime,
+          endDateTime,
+        );
+        fail('Should have thrown an exception');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConflictException);
+        if (error instanceof ConflictException) {
+          expect(error.message).toContain("Conflit avec d'autres rendez-vous:");
+          expect(error.message).toContain(
+            conflictingAppointments[0].startTime.toISOString(),
+          );
+          expect(error.message).toContain(
+            conflictingAppointments[1].startTime.toISOString(),
+          );
+        }
+      }
     });
   });
 });
