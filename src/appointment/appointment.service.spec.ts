@@ -11,6 +11,7 @@ describe('AppointmentService', () => {
     appointment: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findUnique: jest.fn(),
     },
     instructor: {
       findUnique: jest.fn(),
@@ -792,6 +793,464 @@ describe('AppointmentService', () => {
         },
         orderBy: { startTime: 'asc' },
       });
+    });
+  });
+
+  describe('getAppointmentById', () => {
+    const appointmentId = 1;
+
+    const mockAppointment = {
+      id: 1,
+      studentId: 1,
+      instructorId: 2,
+      meetingPointId: 3,
+      paymentId: 1,
+      startTime: new Date('2024-06-15T10:00:00.000Z'),
+      endTime: new Date('2024-06-15T11:00:00.000Z'),
+      status: 'CONFIRMED',
+      description: 'Driving lesson',
+      createdAt: new Date('2024-06-15T09:00:00.000Z'),
+      modifiedAt: new Date('2024-06-15T09:00:00.000Z'),
+      student: {
+        id: 1,
+        firstName: 'Jane',
+        lastName: 'Student',
+        email: 'jane@example.com',
+        phoneNumber: '+33123456789',
+        neph: 123456789,
+        creditCardId: 1,
+        profilePictureUrl: null,
+        createdAt: new Date('2024-06-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-06-01T00:00:00.000Z'),
+      },
+      instructor: {
+        id: 2,
+        priceId: 1,
+        firstName: 'John',
+        lastName: 'Instructor',
+        gender: 'Male',
+        email: 'john@instructor.com',
+        phoneNumber: '+33987654321',
+        address: '123 Main St, Paris',
+        siret: '12345678901234',
+        iban: 'FR1420041010050500013M02606',
+        bic: 'CCBPFRPP',
+        createdAt: new Date('2024-05-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-05-01T00:00:00.000Z'),
+      },
+      meetingPoint: {
+        id: 3,
+        instructorId: 2,
+        longitude: 2.3522,
+        latitude: 48.8566,
+        name: 'Main Street',
+        createdAt: new Date('2024-05-15T00:00:00.000Z'),
+        modifiedAt: new Date('2024-05-15T00:00:00.000Z'),
+      },
+      payment: {
+        id: 1,
+        studentId: 1,
+        priceId: 1,
+        datetime: new Date('2024-06-15T08:00:00.000Z'),
+      },
+    };
+
+    beforeEach(() => {
+      // Setup default successful response
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
+    });
+
+    it('should successfully return appointment with all relations for a valid appointment ID', async () => {
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        include: {
+          student: true,
+          instructor: true,
+          meetingPoint: true,
+          payment: true,
+        },
+      });
+      expect(result).toEqual(mockAppointment);
+    });
+
+    it('should throw NotFoundException when appointment is not found', async () => {
+      // Arrange
+      mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.getAppointmentById(appointmentId)).rejects.toThrow(
+        `Rendez-vous avec l'ID ${appointmentId} non trouvé`,
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        include: {
+          student: true,
+          instructor: true,
+          meetingPoint: true,
+          payment: true,
+        },
+      });
+    });
+
+    it('should handle appointment with null payment correctly', async () => {
+      // Arrange
+      const appointmentWithNullPayment = {
+        ...mockAppointment,
+        paymentId: null,
+        payment: null,
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        appointmentWithNullPayment,
+      );
+
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(result).toEqual(appointmentWithNullPayment);
+      expect(result.payment).toBeNull();
+      expect(result.paymentId).toBeNull();
+    });
+
+    it('should handle appointment with null description correctly', async () => {
+      // Arrange
+      const appointmentWithNullDescription = {
+        ...mockAppointment,
+        description: null,
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        appointmentWithNullDescription,
+      );
+
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(result).toEqual(appointmentWithNullDescription);
+      expect(result.description).toBeNull();
+    });
+
+    it('should handle different appointment statuses correctly', async () => {
+      // Arrange
+      const appointmentStatuses = [
+        'PENDING',
+        'CONFIRMED',
+        'CANCELLED',
+        'NOTATION',
+        'COMPLETED',
+      ];
+
+      for (const status of appointmentStatuses) {
+        const appointmentWithStatus = {
+          ...mockAppointment,
+          status,
+        };
+        mockPrismaService.appointment.findUnique.mockResolvedValue(
+          appointmentWithStatus,
+        );
+
+        // Act
+        const result = await service.getAppointmentById(appointmentId);
+
+        // Assert
+        expect(result.status).toBe(status);
+      }
+    });
+
+    it('should handle zero appointment ID correctly', async () => {
+      // Arrange
+      const zeroAppointmentId = 0;
+      mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentById(zeroAppointmentId),
+      ).rejects.toThrow(
+        `Rendez-vous avec l'ID ${zeroAppointmentId} non trouvé`,
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: zeroAppointmentId },
+        include: {
+          student: true,
+          instructor: true,
+          meetingPoint: true,
+          payment: true,
+        },
+      });
+    });
+
+    it('should handle negative appointment ID correctly', async () => {
+      // Arrange
+      const negativeAppointmentId = -1;
+      mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentById(negativeAppointmentId),
+      ).rejects.toThrow(
+        `Rendez-vous avec l'ID ${negativeAppointmentId} non trouvé`,
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: negativeAppointmentId },
+        include: {
+          student: true,
+          instructor: true,
+          meetingPoint: true,
+          payment: true,
+        },
+      });
+    });
+
+    it('should throw an error when Prisma findUnique fails', async () => {
+      // Arrange
+      const prismaError = new Error('Database connection failed');
+      mockPrismaService.appointment.findUnique.mockRejectedValue(prismaError);
+
+      // Act & Assert
+      await expect(service.getAppointmentById(appointmentId)).rejects.toThrow(
+        'Database connection failed',
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        include: {
+          student: true,
+          instructor: true,
+          meetingPoint: true,
+          payment: true,
+        },
+      });
+    });
+
+    it('should include all required relations in the response', async () => {
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(result).toHaveProperty('student');
+      expect(result).toHaveProperty('instructor');
+      expect(result).toHaveProperty('meetingPoint');
+      expect(result).toHaveProperty('payment');
+
+      // Verify student properties
+      expect(result.student).toHaveProperty('firstName');
+      expect(result.student).toHaveProperty('lastName');
+      expect(result.student).toHaveProperty('email');
+      expect(result.student).toHaveProperty('phoneNumber');
+
+      // Verify instructor properties
+      expect(result.instructor).toHaveProperty('firstName');
+      expect(result.instructor).toHaveProperty('lastName');
+      expect(result.instructor).toHaveProperty('email');
+      expect(result.instructor).toHaveProperty('siret');
+
+      // Verify meeting point properties
+      expect(result.meetingPoint).toHaveProperty('name');
+      expect(result.meetingPoint).toHaveProperty('longitude');
+      expect(result.meetingPoint).toHaveProperty('latitude');
+
+      // Verify payment properties (when not null)
+      if (result.payment) {
+        expect(result.payment).toHaveProperty('studentId');
+        expect(result.payment).toHaveProperty('priceId');
+        expect(result.payment).toHaveProperty('datetime');
+      }
+    });
+
+    it('should handle appointment with student having null optional fields', async () => {
+      // Arrange
+      const appointmentWithStudentNullFields = {
+        ...mockAppointment,
+        student: {
+          ...mockAppointment.student,
+          phoneNumber: null,
+          neph: null,
+          creditCardId: null,
+          profilePictureUrl: null,
+        },
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        appointmentWithStudentNullFields,
+      );
+
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(result.student.phoneNumber).toBeNull();
+      expect(result.student.neph).toBeNull();
+      expect(result.student.creditCardId).toBeNull();
+      expect(result.student.profilePictureUrl).toBeNull();
+    });
+
+    it('should handle appointment with instructor having null optional fields', async () => {
+      // Arrange
+      const appointmentWithInstructorNullFields = {
+        ...mockAppointment,
+        instructor: {
+          ...mockAppointment.instructor,
+          phoneNumber: null,
+          profilePictureUrl: null,
+        },
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        appointmentWithInstructorNullFields,
+      );
+
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(result.instructor.phoneNumber).toBeNull();
+      expect(result.instructor.profilePictureUrl).toBeNull();
+    });
+
+    it('should verify the correct appointment ID is used in the query', async () => {
+      // Arrange
+      const specificAppointmentId = 999;
+
+      // Act
+      await service.getAppointmentById(specificAppointmentId);
+
+      // Assert
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: specificAppointmentId },
+        include: {
+          student: true,
+          instructor: true,
+          meetingPoint: true,
+          payment: true,
+        },
+      });
+    });
+
+    it('should handle appointment with past dates correctly', async () => {
+      // Arrange
+      const appointmentWithPastDates = {
+        ...mockAppointment,
+        startTime: new Date('2023-01-15T10:00:00.000Z'),
+        endTime: new Date('2023-01-15T11:00:00.000Z'),
+        createdAt: new Date('2023-01-15T09:00:00.000Z'),
+        modifiedAt: new Date('2023-01-15T09:30:00.000Z'),
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        appointmentWithPastDates,
+      );
+
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(result.startTime).toEqual(new Date('2023-01-15T10:00:00.000Z'));
+      expect(result.endTime).toEqual(new Date('2023-01-15T11:00:00.000Z'));
+      expect(result.createdAt).toEqual(new Date('2023-01-15T09:00:00.000Z'));
+      expect(result.modifiedAt).toEqual(new Date('2023-01-15T09:30:00.000Z'));
+    });
+
+    it('should handle appointment with future dates correctly', async () => {
+      // Arrange
+      const appointmentWithFutureDates = {
+        ...mockAppointment,
+        startTime: new Date('2025-12-25T10:00:00.000Z'),
+        endTime: new Date('2025-12-25T11:00:00.000Z'),
+        createdAt: new Date('2025-12-01T00:00:00.000Z'),
+        modifiedAt: new Date('2025-12-01T00:00:00.000Z'),
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        appointmentWithFutureDates,
+      );
+
+      // Act
+      const result = await service.getAppointmentById(appointmentId);
+
+      // Assert
+      expect(result.startTime).toEqual(new Date('2025-12-25T10:00:00.000Z'));
+      expect(result.endTime).toEqual(new Date('2025-12-25T11:00:00.000Z'));
+      expect(result.createdAt).toEqual(new Date('2025-12-01T00:00:00.000Z'));
+      expect(result.modifiedAt).toEqual(new Date('2025-12-01T00:00:00.000Z'));
+    });
+
+    it('should handle very large appointment ID correctly', async () => {
+      // Arrange
+      const largeAppointmentId = 2147483647; // Max 32-bit integer
+      mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentById(largeAppointmentId),
+      ).rejects.toThrow(
+        `Rendez-vous avec l'ID ${largeAppointmentId} non trouvé`,
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: largeAppointmentId },
+        include: {
+          student: true,
+          instructor: true,
+          meetingPoint: true,
+          payment: true,
+        },
+      });
+    });
+
+    it('should return the exact same object structure as received from Prisma', async () => {
+      // Arrange
+      const exactPrismaResponse = {
+        id: 42,
+        studentId: 10,
+        instructorId: 20,
+        meetingPointId: 30,
+        paymentId: 40,
+        startTime: new Date('2024-07-20T15:30:00.000Z'),
+        endTime: new Date('2024-07-20T16:30:00.000Z'),
+        status: 'PENDING',
+        description: 'Advanced parallel parking lesson',
+        createdAt: new Date('2024-07-19T10:00:00.000Z'),
+        modifiedAt: new Date('2024-07-19T14:22:33.000Z'),
+        student: {
+          id: 10,
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'test@example.com',
+        },
+        instructor: {
+          id: 20,
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+        },
+        meetingPoint: {
+          id: 30,
+          name: 'Central Plaza',
+          longitude: 2.3488,
+          latitude: 48.8534,
+        },
+        payment: {
+          id: 40,
+          studentId: 10,
+          priceId: 5,
+          datetime: new Date('2024-07-19T09:00:00.000Z'),
+        },
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        exactPrismaResponse,
+      );
+
+      // Act
+      const result = await service.getAppointmentById(42);
+
+      // Assert
+      expect(result).toStrictEqual(exactPrismaResponse);
+      expect(result).toBe(exactPrismaResponse); // Should be the exact same object reference
     });
   });
 });
