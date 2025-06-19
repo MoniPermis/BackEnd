@@ -79,4 +79,24 @@ export class AppointmentService {
       orderBy: { startTime: 'asc' },
     });
   }
+
+  async getAppointmentById(appointmentId: number) {
+    const appointment = await this.prismaService.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        student: true,
+        instructor: true,
+        meetingPoint: true,
+        payment: true,
+      },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `Rendez-vous avec l'ID ${appointmentId} non trouvé`,
+      );
+    }
+
+    return appointment;
+  }
 }
