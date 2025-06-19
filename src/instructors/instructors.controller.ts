@@ -8,6 +8,7 @@ import {
   Put,
   Delete,
   HttpCode,
+  Query,
 } from '@nestjs/common';
 import { AvailabilityScheduleService } from '../availability_schedule/availability_schedule.service';
 import { CreateAvailabilityScheduleDto } from '../availability_schedule/dto';
@@ -15,6 +16,7 @@ import { CreateUnavailabilityDto } from '../unavailability/dto';
 import { UnavailabilityService } from '../unavailability/unavailability.service';
 import { MeetingPointsService } from 'src/meeting_points/meeting_points.service';
 import { InstructorsService } from './instructors.service';
+import { InstructorResearchDto } from './dto';
 
 @Controller('instructors')
 export class InstructorsController {
@@ -33,8 +35,8 @@ export class InstructorsController {
   }
 
   @Get()
-  async getAllInstructors() {
-    return await this.instructorsService.getAllInstructors();
+  async getAllInstructors(@Query() searchInfo: InstructorResearchDto) {
+    return await this.instructorsService.getAllInstructors(searchInfo);
   }
 
   @Post(':instructorId/availability')
