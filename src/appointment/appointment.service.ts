@@ -58,4 +58,25 @@ export class AppointmentService {
       },
     });
   }
+
+  async getAppointmentsByInstructorId(instructorId: number) {
+    const instructor = await this.prismaService.instructor.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) {
+      throw new NotFoundException(
+        `Moniteur avec l'ID ${instructorId} non trouvé`,
+      );
+    }
+
+    return this.prismaService.appointment.findMany({
+      where: { instructorId },
+      include: {
+        student: true,
+        meetingPoint: true,
+        payment: true,
+      },
+      orderBy: { startTime: 'asc' },
+    });
+  }
 }

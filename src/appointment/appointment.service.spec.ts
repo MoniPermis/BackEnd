@@ -10,6 +10,7 @@ describe('AppointmentService', () => {
   const mockPrismaService = {
     appointment: {
       create: jest.fn(),
+      findMany: jest.fn(),
     },
     instructor: {
       findUnique: jest.fn(),
@@ -412,6 +413,385 @@ describe('AppointmentService', () => {
       await expect(
         service.createAppointment(mockCreateAppointmentDto),
       ).rejects.toThrow('Unique constraint failed');
+    });
+  });
+
+  describe('getAppointmentsByInstructorId', () => {
+    const instructorId = 2;
+    const mockInstructor = { id: 2, name: 'John Instructor' };
+
+    const mockAppointments = [
+      {
+        id: 1,
+        studentId: 1,
+        instructorId: 2,
+        meetingPointId: 3,
+        paymentId: 1,
+        startTime: new Date('2024-06-15T10:00:00.000Z'),
+        endTime: new Date('2024-06-15T11:00:00.000Z'),
+        status: 'CONFIRMED',
+        description: 'First driving lesson',
+        createdAt: new Date('2024-06-15T09:00:00.000Z'),
+        modifiedAt: new Date('2024-06-15T09:00:00.000Z'),
+        student: {
+          id: 1,
+          firstName: 'Jane',
+          lastName: 'Student',
+          email: 'jane@example.com',
+        },
+        meetingPoint: {
+          id: 3,
+          name: 'Main Street',
+          longitude: 2.3522,
+          latitude: 48.8566,
+        },
+        payment: {
+          id: 1,
+          studentId: 1,
+          priceId: 1,
+          datetime: new Date('2024-06-15T08:00:00.000Z'),
+        },
+      },
+      {
+        id: 2,
+        studentId: 2,
+        instructorId: 2,
+        meetingPointId: 4,
+        paymentId: null,
+        startTime: new Date('2024-06-16T14:00:00.000Z'),
+        endTime: new Date('2024-06-16T15:00:00.000Z'),
+        status: 'PENDING',
+        description: 'Second driving lesson',
+        createdAt: new Date('2024-06-16T13:00:00.000Z'),
+        modifiedAt: new Date('2024-06-16T13:00:00.000Z'),
+        student: {
+          id: 2,
+          firstName: 'Bob',
+          lastName: 'Student',
+          email: 'bob@example.com',
+        },
+        meetingPoint: {
+          id: 4,
+          name: 'City Center',
+          longitude: 2.3488,
+          latitude: 48.8534,
+        },
+        payment: null,
+      },
+    ];
+
+    beforeEach(() => {
+      // Setup default successful responses
+      mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        mockAppointments,
+      );
+    });
+
+    it('should successfully return appointments for a valid instructor', async () => {
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: { instructorId },
+        include: {
+          student: true,
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: { startTime: 'asc' },
+      });
+      expect(result).toEqual(mockAppointments);
+    });
+
+    it('should return empty array when instructor has no appointments', async () => {
+      // Arrange
+      mockPrismaService.appointment.findMany.mockResolvedValue([]);
+
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: { instructorId },
+        include: {
+          student: true,
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: { startTime: 'asc' },
+      });
+      expect(result).toEqual([]);
+    });
+
+    it('should throw NotFoundException when instructor is not found', async () => {
+      // Arrange
+      mockPrismaService.instructor.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentsByInstructorId(instructorId),
+      ).rejects.toThrow(`Moniteur avec l'ID ${instructorId} non trouvé`);
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(mockPrismaService.appointment.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should handle appointments with null payment correctly', async () => {
+      // Arrange
+      const appointmentsWithNullPayment = [
+        {
+          ...mockAppointments[0],
+          paymentId: null,
+          payment: null,
+        },
+      ];
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        appointmentsWithNullPayment,
+      );
+
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(result).toEqual(appointmentsWithNullPayment);
+      expect(result[0].payment).toBeNull();
+    });
+
+    it('should return appointments ordered by startTime ascending', async () => {
+      // Arrange
+      const unorderedAppointments = [
+        {
+          ...mockAppointments[1],
+          startTime: new Date('2024-06-16T14:00:00.000Z'),
+        },
+        {
+          ...mockAppointments[0],
+          startTime: new Date('2024-06-15T10:00:00.000Z'),
+        },
+      ];
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        unorderedAppointments,
+      );
+
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: { instructorId },
+        include: {
+          student: true,
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: { startTime: 'asc' },
+      });
+      expect(result).toEqual(unorderedAppointments);
+    });
+
+    it('should handle different appointment statuses correctly', async () => {
+      // Arrange
+      const appointmentsWithVariousStatuses = [
+        {
+          ...mockAppointments[0],
+          status: 'CONFIRMED',
+        },
+        {
+          ...mockAppointments[1],
+          status: 'PENDING',
+        },
+        {
+          ...mockAppointments[0],
+          id: 3,
+          status: 'CANCELLED',
+        },
+        {
+          ...mockAppointments[0],
+          id: 4,
+          status: 'COMPLETED',
+        },
+      ];
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        appointmentsWithVariousStatuses,
+      );
+
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(result).toEqual(appointmentsWithVariousStatuses);
+      expect(result).toHaveLength(4);
+      expect(result.map((a) => a.status)).toEqual([
+        'CONFIRMED',
+        'PENDING',
+        'CANCELLED',
+        'COMPLETED',
+      ]);
+    });
+
+    it('should handle appointments with null description correctly', async () => {
+      // Arrange
+      const appointmentsWithNullDescription = [
+        {
+          ...mockAppointments[0],
+          description: null,
+        },
+      ];
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        appointmentsWithNullDescription,
+      );
+
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(result).toEqual(appointmentsWithNullDescription);
+      expect(result[0].description).toBeNull();
+    });
+
+    it('should handle zero instructorId correctly', async () => {
+      // Arrange
+      const zeroInstructorId = 0;
+      mockPrismaService.instructor.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentsByInstructorId(zeroInstructorId),
+      ).rejects.toThrow(`Moniteur avec l'ID ${zeroInstructorId} non trouvé`);
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: zeroInstructorId },
+      });
+    });
+
+    it('should handle negative instructorId correctly', async () => {
+      // Arrange
+      const negativeInstructorId = -1;
+      mockPrismaService.instructor.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentsByInstructorId(negativeInstructorId),
+      ).rejects.toThrow(
+        `Moniteur avec l'ID ${negativeInstructorId} non trouvé`,
+      );
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: negativeInstructorId },
+      });
+    });
+
+    it('should throw an error when Prisma findUnique fails', async () => {
+      // Arrange
+      const prismaError = new Error('Database connection failed');
+      mockPrismaService.instructor.findUnique.mockRejectedValue(prismaError);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentsByInstructorId(instructorId),
+      ).rejects.toThrow('Database connection failed');
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(mockPrismaService.appointment.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should throw an error when Prisma findMany fails', async () => {
+      // Arrange
+      const prismaError = new Error('Database query failed');
+      mockPrismaService.appointment.findMany.mockRejectedValue(prismaError);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentsByInstructorId(instructorId),
+      ).rejects.toThrow('Database query failed');
+
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: instructorId },
+      });
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: { instructorId },
+        include: {
+          student: true,
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: { startTime: 'asc' },
+      });
+    });
+
+    it('should include all required relations in the response', async () => {
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(result[0]).toHaveProperty('student');
+      expect(result[0]).toHaveProperty('meetingPoint');
+      expect(result[0]).toHaveProperty('payment');
+      expect(result[0].student).toHaveProperty('firstName');
+      expect(result[0].student).toHaveProperty('lastName');
+      expect(result[0].student).toHaveProperty('email');
+      expect(result[0].meetingPoint).toHaveProperty('name');
+      expect(result[0].meetingPoint).toHaveProperty('longitude');
+      expect(result[0].meetingPoint).toHaveProperty('latitude');
+    });
+
+    it('should handle large number of appointments efficiently', async () => {
+      // Arrange
+      const largeAppointmentsList = Array.from({ length: 100 }, (_, index) => ({
+        ...mockAppointments[0],
+        id: index + 1,
+        startTime: new Date(
+          `2024-06-${15 + (index % 15)}T${10 + (index % 8)}:00:00.000Z`,
+        ),
+      }));
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        largeAppointmentsList,
+      );
+
+      // Act
+      const result = await service.getAppointmentsByInstructorId(instructorId);
+
+      // Assert
+      expect(result).toHaveLength(100);
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('should verify the correct instructor ID is used in the query', async () => {
+      // Arrange
+      const specificInstructorId = 999;
+      mockPrismaService.instructor.findUnique.mockResolvedValue({
+        id: specificInstructorId,
+        name: 'Specific Instructor',
+      });
+
+      // Act
+      await service.getAppointmentsByInstructorId(specificInstructorId);
+
+      // Assert
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: specificInstructorId },
+      });
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: { instructorId: specificInstructorId },
+        include: {
+          student: true,
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: { startTime: 'asc' },
+      });
     });
   });
 });
