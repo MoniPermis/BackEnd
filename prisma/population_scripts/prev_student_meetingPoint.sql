@@ -75,14 +75,16 @@ ON CONFLICT (email) DO NOTHING;
 -- 4. Insertion d'un point de rendez-vous
 INSERT INTO meeting_point (
     instructor_id,
-    location,
+    latitude,
+    longitude,
     name,
     created_at,
     modified_at
 ) VALUES (
              (SELECT id FROM instructor WHERE email = 'user@example.com'),
-             'POINT(2.3522 48.8566)',        -- location (coordonnées GPS de Paris - format PostGIS)
-             'Place de la République',       -- name
+             2.3522,
+             48.8566,
+             'test_point',
              CURRENT_DATE,                   -- created_at
              CURRENT_DATE                    -- modified_at
          );
@@ -152,7 +154,8 @@ SELECT 'Point de rendez-vous inséré:' as info;
 SELECT
     id,
     instructor_id,
-    location,
+    latitude,
+    longitude,
     name,
     created_at
 FROM meeting_point
