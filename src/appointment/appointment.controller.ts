@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+} from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto } from './dto';
 
@@ -9,5 +16,10 @@ export class AppointmentController {
   @Post()
   async createAppointment(@Body() createAppointmentDto: CreateAppointmentDto) {
     return this.appointmentService.createAppointment(createAppointmentDto);
+  }
+
+  @Get(':id')
+  async getAppointmentById(@Param('id', ParseIntPipe) id: number) {
+    return this.appointmentService.getAppointmentById(id);
   }
 }
