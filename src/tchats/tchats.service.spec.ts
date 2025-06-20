@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ChatsService } from './chats.service';
+import { TchatsService } from './tchats.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-describe('ChatsService', () => {
-  let service: ChatsService;
+describe('TchatsService', () => {
+  let service: TchatsService;
 
-  const mockPrisma = {}
+  const mockPrisma = {};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ChatsService,
+        TchatsService,
         {
           provide: PrismaService,
           useValue: mockPrisma,
@@ -18,7 +18,7 @@ describe('ChatsService', () => {
       ],
     }).compile();
 
-    service = module.get<ChatsService>(ChatsService);
+    service = module.get<TchatsService>(TchatsService);
 
     jest.clearAllMocks();
   });
