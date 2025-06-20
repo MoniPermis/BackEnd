@@ -1,7 +1,13 @@
+-- CreateEnum
+CREATE TYPE "AppointmentStatus" AS ENUM ('PENDING', 'CONFIRMED', 'CANCELLED', 'NOTATION', 'COMPLETED');
+
+-- CreateEnum
+CREATE TYPE "RuleType" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY');
+
 -- CreateTable
 CREATE TABLE "instructor" (
-    "id" BIGINT NOT NULL,
-    "price_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "price_id" INTEGER NOT NULL,
     "first_name" VARCHAR(255) NOT NULL,
     "last_name" VARCHAR(255) NOT NULL,
     "gender" VARCHAR(255) NOT NULL,
@@ -26,14 +32,14 @@ CREATE TABLE "instructor" (
 
 -- CreateTable
 CREATE TABLE "student" (
-    "id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
     "first_name" VARCHAR(255) NOT NULL,
     "last_name" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "password" VARCHAR(255) NOT NULL,
     "phone_number" VARCHAR(255),
-    "NEPH" BIGINT,
-    "credit_card_id" BIGINT,
+    "NEPH" INTEGER,
+    "credit_card_id" INTEGER,
     "profile_picture_url" VARCHAR(255),
     "created_at" DATE NOT NULL,
     "updated_at" DATE NOT NULL,
@@ -43,10 +49,10 @@ CREATE TABLE "student" (
 
 -- CreateTable
 CREATE TABLE "tchat" (
-    "id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
-    "student_id" BIGINT NOT NULL,
-    "instructor_id" BIGINT NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "instructor_id" INTEGER NOT NULL,
     "created_at" DATE NOT NULL,
     "last_message_at" DATE NOT NULL,
 
@@ -55,10 +61,10 @@ CREATE TABLE "tchat" (
 
 -- CreateTable
 CREATE TABLE "message" (
-    "id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
     "content" VARCHAR(255) NOT NULL,
     "sender_type" VARCHAR(255) NOT NULL,
-    "tchat_id" BIGINT NOT NULL,
+    "tchat_id" INTEGER NOT NULL,
     "is_read" BOOLEAN NOT NULL,
     "sent_at" DATE NOT NULL,
 
@@ -67,10 +73,10 @@ CREATE TABLE "message" (
 
 -- CreateTable
 CREATE TABLE "credit_card" (
-    "id" BIGINT NOT NULL,
-    "card_number" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "card_number" INTEGER NOT NULL,
     "expiration_date" DATE NOT NULL,
-    "CVV" BIGINT NOT NULL,
+    "CVV" INTEGER NOT NULL,
     "name" VARCHAR(255) NOT NULL,
 
     CONSTRAINT "credit_card_pkey" PRIMARY KEY ("id")
@@ -78,17 +84,15 @@ CREATE TABLE "credit_card" (
 
 -- CreateTable
 CREATE TABLE "appointment" (
-    "id" BIGINT NOT NULL,
-    "student_id" BIGINT NOT NULL,
-    "instructor_id" BIGINT NOT NULL,
-    "meeting_point_id" BIGINT NOT NULL,
-    "payment_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "instructor_id" INTEGER NOT NULL,
+    "meeting_point_id" INTEGER NOT NULL,
+    "payment_id" INTEGER,
     "start_time" DATE NOT NULL,
     "end_time" DATE NOT NULL,
-    "description" VARCHAR(255) NOT NULL,
-    "pending" BOOLEAN NOT NULL DEFAULT true,
-    "is_accepted" BOOLEAN NOT NULL,
-    "is_valid" BOOLEAN NOT NULL,
+    "status" "AppointmentStatus" NOT NULL DEFAULT 'PENDING',
+    "description" VARCHAR(255),
     "created_at" DATE NOT NULL,
     "modified_at" DATE NOT NULL,
 
@@ -97,8 +101,8 @@ CREATE TABLE "appointment" (
 
 -- CreateTable
 CREATE TABLE "meeting_point" (
-    "id" BIGINT NOT NULL,
-    "instructor_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "instructor_id" INTEGER NOT NULL,
     "location" TEXT NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "created_at" DATE NOT NULL,
@@ -109,13 +113,12 @@ CREATE TABLE "meeting_point" (
 
 -- CreateTable
 CREATE TABLE "availability_schedule" (
-    "id" BIGINT NOT NULL,
-    "instructor_id" BIGINT NOT NULL,
-    "day_of_week" INTEGER NOT NULL,
-    "start_time" TIME(0) NOT NULL,
-    "end_time" TIME(0) NOT NULL,
+    "id" SERIAL NOT NULL,
+    "instructor_id" INTEGER NOT NULL,
+    "start_datetime" TIMESTAMP(3) NOT NULL,
+    "end_datetime" TIMESTAMP(3) NOT NULL,
     "is_recurring" BOOLEAN NOT NULL,
-    "effective_date" DATE NOT NULL,
+    "recurrence_rule" "RuleType",
     "expiry_date" DATE,
     "note" VARCHAR(255),
 
@@ -124,10 +127,10 @@ CREATE TABLE "availability_schedule" (
 
 -- CreateTable
 CREATE TABLE "instructor_unavailability" (
-    "id" BIGINT NOT NULL,
-    "instructor_id" BIGINT NOT NULL,
-    "start_datetime" DATE NOT NULL,
-    "end_datetime" DATE NOT NULL,
+    "id" SERIAL NOT NULL,
+    "instructor_id" INTEGER NOT NULL,
+    "start_datetime" TIMESTAMP(3) NOT NULL,
+    "end_datetime" TIMESTAMP(3) NOT NULL,
     "reason" VARCHAR(255) NOT NULL,
 
     CONSTRAINT "instructor_unavailability_pkey" PRIMARY KEY ("id")
@@ -135,8 +138,8 @@ CREATE TABLE "instructor_unavailability" (
 
 -- CreateTable
 CREATE TABLE "instructor_review" (
-    "id" BIGINT NOT NULL,
-    "instructor_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "instructor_id" INTEGER NOT NULL,
     "stars_grade" INTEGER NOT NULL DEFAULT 5,
     "comment" VARCHAR(255) NOT NULL,
     "created_at" DATE NOT NULL,
@@ -146,9 +149,9 @@ CREATE TABLE "instructor_review" (
 
 -- CreateTable
 CREATE TABLE "payments" (
-    "id" BIGINT NOT NULL,
-    "student_id" BIGINT NOT NULL,
-    "price_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "price_id" INTEGER NOT NULL,
     "datetime" DATE NOT NULL,
 
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
@@ -156,7 +159,7 @@ CREATE TABLE "payments" (
 
 -- CreateTable
 CREATE TABLE "price" (
-    "id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
     "amount" INTEGER NOT NULL,
     "currency" VARCHAR(255) NOT NULL,
 
@@ -165,9 +168,9 @@ CREATE TABLE "price" (
 
 -- CreateTable
 CREATE TABLE "purchase_order" (
-    "id" BIGINT NOT NULL,
-    "instructor_id" BIGINT NOT NULL,
-    "payment_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "instructor_id" INTEGER NOT NULL,
+    "payment_id" INTEGER NOT NULL,
     "unique_number" UUID NOT NULL,
     "title" VARCHAR(255) NOT NULL,
     "issue_date" DATE NOT NULL,
@@ -234,7 +237,7 @@ ALTER TABLE "appointment" ADD CONSTRAINT "appointment_instructor_id_fkey" FOREIG
 ALTER TABLE "appointment" ADD CONSTRAINT "appointment_meeting_point_id_fkey" FOREIGN KEY ("meeting_point_id") REFERENCES "meeting_point"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "appointment" ADD CONSTRAINT "appointment_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "appointment" ADD CONSTRAINT "appointment_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "meeting_point" ADD CONSTRAINT "meeting_point_instructor_id_fkey" FOREIGN KEY ("instructor_id") REFERENCES "instructor"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -259,3 +262,4 @@ ALTER TABLE "purchase_order" ADD CONSTRAINT "purchase_order_instructor_id_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "purchase_order" ADD CONSTRAINT "purchase_order_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
