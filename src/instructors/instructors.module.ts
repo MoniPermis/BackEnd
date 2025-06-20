@@ -5,6 +5,7 @@ import { UnavailabilityModule } from '../unavailability/unavailability.module';
 import { MeetingPointsModule } from 'src/meeting_points/meeting_points.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { InstructorsService } from './instructors.service';
+import { AppointmentModule } from 'src/appointment/appointment.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { InstructorsService } from './instructors.service';
     UnavailabilityModule,
     MeetingPointsModule,
     PrismaModule,
+    AppointmentModule,
   ],
   controllers: [InstructorsController],
   providers: [InstructorsService],
