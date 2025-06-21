@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppointmentService } from './appointment.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
-import { CreateAppointmentDto } from './dto';
+import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
+import { NotFoundException } from '@nestjs/common';
 
 describe('AppointmentService', () => {
   let service: AppointmentService;
@@ -12,6 +13,7 @@ describe('AppointmentService', () => {
       create: jest.fn(),
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
     instructor: {
       findUnique: jest.fn(),
@@ -1251,6 +1253,429 @@ describe('AppointmentService', () => {
       // Assert
       expect(result).toStrictEqual(exactPrismaResponse);
       expect(result).toBe(exactPrismaResponse); // Should be the exact same object reference
+    });
+  });
+
+  describe('modifyAppointmentById', () => {
+    const mockAppointment = {
+      id: 1,
+      studentId: 1,
+      instructorId: 1,
+      meetingPointId: 1,
+      startTime: new Date('2024-02-01T10:00:00Z'),
+      endTime: new Date('2024-02-01T11:00:00Z'),
+      status: 'PENDING',
+      description: 'Initial description',
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      modifiedAt: new Date('2024-01-01T00:00:00Z'),
+    };
+
+    const mockMeetingPoint = {
+      id: 2,
+      instructorId: 1,
+      longitude: 2.3522,
+      latitude: 48.8566,
+      name: 'Test Meeting Point',
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+    };
+    it('should successfully update appointment with all fields', async () => {
+      // Arrange
+      const appointmentId = 1;
+
+      const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+        meetingPointId: 2,
+        startTime: '2024-02-01T14:00:00Z',
+        endTime: '2024-02-01T15:00:00Z',
+        status: 'CONFIRMED',
+        description: 'Updated description',
+      };
+
+      const mockUpdatedAppointment = {
+        ...mockAppointment,
+        ...mockUpdateAppointmentDto,
+        startTime: new Date(mockUpdateAppointmentDto.startTime!),
+        endTime: new Date(mockUpdateAppointmentDto.endTime!),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        modifiedAt: expect.any(Date),
+      };
+
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
+      mockPrismaService.meetingPoint.findUnique.mockResolvedValue(
+        mockMeetingPoint,
+      );
+      mockScheduleValidationService.checkAppointmentConflicts.mockResolvedValue(
+        undefined,
+      );
+      mockPrismaService.appointment.update.mockResolvedValue(
+        mockUpdatedAppointment,
+      );
+
+      // Act
+      const result = await service.modifyAppointmentById(
+        appointmentId,
+        mockUpdateAppointmentDto,
+      );
+
+      // Assert
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+      });
+      expect(mockPrismaService.meetingPoint.findUnique).toHaveBeenCalledWith({
+        where: { id: mockUpdateAppointmentDto.meetingPointId },
+      });
+      expect(
+        mockScheduleValidationService.checkAppointmentConflicts,
+      ).toHaveBeenCalledWith(
+        mockAppointment.instructorId,
+        new Date(mockUpdateAppointmentDto.startTime!),
+        new Date(mockUpdateAppointmentDto.endTime!),
+        appointmentId,
+      );
+      expect(mockPrismaService.appointment.update).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        data: {
+          meetingPointId: mockUpdateAppointmentDto.meetingPointId,
+          startTime: new Date(mockUpdateAppointmentDto.startTime!),
+          endTime: new Date(mockUpdateAppointmentDto.endTime!),
+          status: mockUpdateAppointmentDto.status,
+          description: mockUpdateAppointmentDto.description,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          modifiedAt: expect.any(Date),
+        },
+      });
+      expect(result).toEqual(mockUpdatedAppointment);
+    });
+
+    it('should successfully update only startTime', async () => {
+      // Arrange
+      const appointmentId = 1;
+      const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+        startTime: '2024-02-01T14:00:00Z',
+      };
+
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
+      mockScheduleValidationService.checkAppointmentConflicts.mockResolvedValue(
+        undefined,
+      );
+      mockPrismaService.appointment.update.mockResolvedValue(mockAppointment);
+
+      // Act
+      await service.modifyAppointmentById(
+        appointmentId,
+        mockUpdateAppointmentDto,
+      );
+
+      // Assert
+      expect(
+        mockScheduleValidationService.checkAppointmentConflicts,
+      ).toHaveBeenCalledWith(
+        mockAppointment.instructorId,
+        new Date(mockUpdateAppointmentDto.startTime!),
+        mockAppointment.endTime,
+        appointmentId,
+      );
+      expect(mockPrismaService.appointment.update).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        data: {
+          startTime: new Date(mockUpdateAppointmentDto.startTime!),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          modifiedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should successfully update only endTime', async () => {
+      // Arrange
+      const appointmentId = 1;
+      const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+        endTime: '2024-02-01T15:00:00Z',
+      };
+
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
+      mockScheduleValidationService.checkAppointmentConflicts.mockResolvedValue(
+        undefined,
+      );
+      mockPrismaService.appointment.update.mockResolvedValue(mockAppointment);
+
+      // Act
+      await service.modifyAppointmentById(
+        appointmentId,
+        mockUpdateAppointmentDto,
+      );
+
+      // Assert
+      expect(
+        mockScheduleValidationService.checkAppointmentConflicts,
+      ).toHaveBeenCalledWith(
+        mockAppointment.instructorId,
+        mockAppointment.startTime,
+        new Date(mockUpdateAppointmentDto.endTime!),
+        appointmentId,
+      );
+      expect(mockPrismaService.appointment.update).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        data: {
+          endTime: new Date(mockUpdateAppointmentDto.endTime!),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          modifiedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should successfully update only status and description', async () => {
+      // Arrange
+      const appointmentId = 1;
+      const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+        status: 'COMPLETED',
+        description: 'Lesson completed successfully',
+      };
+
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
+      mockPrismaService.appointment.update.mockResolvedValue(mockAppointment);
+
+      // Act
+      await service.modifyAppointmentById(
+        appointmentId,
+        mockUpdateAppointmentDto,
+      );
+
+      // Assert
+      expect(
+        mockScheduleValidationService.checkAppointmentConflicts,
+      ).not.toHaveBeenCalled();
+      expect(mockPrismaService.meetingPoint.findUnique).not.toHaveBeenCalled();
+      expect(mockPrismaService.appointment.update).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        data: {
+          status: mockUpdateAppointmentDto.status,
+          description: mockUpdateAppointmentDto.description,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          modifiedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should successfully update with empty description', async () => {
+      // Arrange
+      const appointmentId = 1;
+      const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+        description: '',
+      };
+
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
+      mockPrismaService.appointment.update.mockResolvedValue(mockAppointment);
+
+      // Act
+      await service.modifyAppointmentById(
+        appointmentId,
+        mockUpdateAppointmentDto,
+      );
+
+      // Assert
+      expect(mockPrismaService.appointment.update).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+        data: {
+          description: '',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          modifiedAt: expect.any(Date),
+        },
+      });
+    });
+
+    describe('Error cases', () => {
+      it('should throw NotFoundException when appointment does not exist', async () => {
+        // Arrange
+        const appointmentId = 999;
+        const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+          status: 'CONFIRMED',
+        };
+
+        mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+        // Act & Assert
+        await expect(
+          service.modifyAppointmentById(
+            appointmentId,
+            mockUpdateAppointmentDto,
+          ),
+        ).rejects.toThrow(
+          new NotFoundException(
+            `Rendez-vous avec l'ID ${appointmentId} non trouvé`,
+          ),
+        );
+
+        expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+          where: { id: appointmentId },
+        });
+        expect(mockPrismaService.appointment.update).not.toHaveBeenCalled();
+      });
+
+      it('should throw NotFoundException when meeting point does not exist', async () => {
+        // Arrange
+        const appointmentId = 1;
+        const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+          meetingPointId: 999,
+        };
+
+        mockPrismaService.appointment.findUnique.mockResolvedValue(
+          mockAppointment,
+        );
+        mockPrismaService.meetingPoint.findUnique.mockResolvedValue(null);
+
+        // Act & Assert
+        await expect(
+          service.modifyAppointmentById(
+            appointmentId,
+            mockUpdateAppointmentDto,
+          ),
+        ).rejects.toThrow(
+          new NotFoundException(
+            `Point de rencontre avec l'ID ${mockUpdateAppointmentDto.meetingPointId} non trouvé`,
+          ),
+        );
+
+        expect(mockPrismaService.meetingPoint.findUnique).toHaveBeenCalledWith({
+          where: { id: mockUpdateAppointmentDto.meetingPointId },
+        });
+        expect(mockPrismaService.appointment.update).not.toHaveBeenCalled();
+      });
+
+      it('should propagate schedule validation errors', async () => {
+        // Arrange
+        const appointmentId = 1;
+        const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+          startTime: '2024-02-01T14:00:00Z',
+          endTime: '2024-02-01T15:00:00Z',
+        };
+
+        const conflictError = new Error('Schedule conflict detected');
+
+        mockPrismaService.appointment.findUnique.mockResolvedValue(
+          mockAppointment,
+        );
+        mockScheduleValidationService.checkAppointmentConflicts.mockRejectedValue(
+          conflictError,
+        );
+
+        // Act & Assert
+        await expect(
+          service.modifyAppointmentById(
+            appointmentId,
+            mockUpdateAppointmentDto,
+          ),
+        ).rejects.toThrow(conflictError);
+
+        expect(
+          mockScheduleValidationService.checkAppointmentConflicts,
+        ).toHaveBeenCalledWith(
+          mockAppointment.instructorId,
+          new Date(mockUpdateAppointmentDto.startTime!),
+          new Date(mockUpdateAppointmentDto.endTime!),
+          appointmentId,
+        );
+        expect(mockPrismaService.appointment.update).not.toHaveBeenCalled();
+      });
+
+      it('should handle Prisma update errors', async () => {
+        // Arrange
+        const appointmentId = 1;
+        const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+          status: 'CONFIRMED',
+        };
+
+        const prismaError = new Error('Database connection failed');
+
+        mockPrismaService.appointment.findUnique.mockResolvedValue(
+          mockAppointment,
+        );
+        mockPrismaService.appointment.update.mockRejectedValue(prismaError);
+
+        // Act & Assert
+        await expect(
+          service.modifyAppointmentById(
+            appointmentId,
+            mockUpdateAppointmentDto,
+          ),
+        ).rejects.toThrow(prismaError);
+      });
+    });
+
+    describe('Edge cases', () => {
+      it('should handle empty update DTO', async () => {
+        // Arrange
+        const appointmentId = 1;
+        const mockUpdateAppointmentDto: UpdateAppointmentDto = {};
+
+        mockPrismaService.appointment.findUnique.mockResolvedValue(
+          mockAppointment,
+        );
+        mockPrismaService.appointment.update.mockResolvedValue(mockAppointment);
+
+        // Act
+        await service.modifyAppointmentById(
+          appointmentId,
+          mockUpdateAppointmentDto,
+        );
+
+        // Assert
+        expect(mockPrismaService.appointment.update).toHaveBeenCalledWith({
+          where: { id: appointmentId },
+          data: {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            modifiedAt: expect.any(Date),
+          },
+        });
+        expect(
+          mockScheduleValidationService.checkAppointmentConflicts,
+        ).not.toHaveBeenCalled();
+        expect(
+          mockPrismaService.meetingPoint.findUnique,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('should update modifiedAt field in all cases', async () => {
+        // Arrange
+        const appointmentId = 1;
+        const mockUpdateAppointmentDto: UpdateAppointmentDto = {
+          status: 'CANCELLED',
+        };
+
+        const beforeUpdate = new Date();
+        mockPrismaService.appointment.findUnique.mockResolvedValue(
+          mockAppointment,
+        );
+        mockPrismaService.appointment.update.mockResolvedValue(mockAppointment);
+
+        // Act
+        await service.modifyAppointmentById(
+          appointmentId,
+          mockUpdateAppointmentDto,
+        );
+
+        // Assert
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const updateCall =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          mockPrismaService.appointment.update.mock.calls[0][0];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const modifiedAt = updateCall.data.modifiedAt;
+        expect(modifiedAt).toBeInstanceOf(Date);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        expect(modifiedAt.getTime()).toBeGreaterThanOrEqual(
+          beforeUpdate.getTime(),
+        );
+      });
     });
   });
 });
