@@ -14,6 +14,7 @@ describe('AppointmentService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
     instructor: {
       findUnique: jest.fn(),
@@ -1676,6 +1677,141 @@ describe('AppointmentService', () => {
           beforeUpdate.getTime(),
         );
       });
+    });
+  });
+
+  describe('deleteAppointmentById', () => {
+    const appointmentId = 1;
+    const mockAppointment = {
+      id: 1,
+      studentId: 1,
+      instructorId: 1,
+      meetingPointId: 1,
+      startTime: new Date('2024-01-15T10:00:00Z'),
+      endTime: new Date('2024-01-15T11:00:00Z'),
+      description: 'Test appointment',
+      status: 'SCHEDULED',
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      modifiedAt: new Date('2024-01-01T00:00:00Z'),
+    };
+
+    it('should successfully delete an existing appointment', async () => {
+      // Arrange
+      mockPrismaService.appointment.findUnique.mockResolvedValue(mockAppointment);
+      mockPrismaService.appointment.delete.mockResolvedValue(mockAppointment);
+
+      // Act
+      const result = await service.deleteAppointmentById(appointmentId);
+
+      // Assert
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+      });
+      expect(mockPrismaService.appointment.delete).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+      });
+      expect(result).toEqual(mockAppointment);
+    });
+
+    it('should throw NotFoundException when appointment does not exist', async () => {
+      // Arrange
+      mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.deleteAppointmentById(appointmentId)).rejects.toThrow(
+        new NotFoundException(`Rendez-vous avec l'ID ${appointmentId} non trouvé`)
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+      });
+      expect(mockPrismaService.appointment.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle database errors during findUnique', async () => {
+      // Arrange
+      const dbError = new Error('Database connection failed');
+      mockPrismaService.appointment.findUnique.mockRejectedValue(dbError);
+
+      // Act & Assert
+      await expect(service.deleteAppointmentById(appointmentId)).rejects.toThrow(dbError);
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+      });
+      expect(mockPrismaService.appointment.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle database errors during delete operation', async () => {
+      // Arrange
+      const dbError = new Error('Delete operation failed');
+      mockPrismaService.appointment.findUnique.mockResolvedValue(mockAppointment);
+      mockPrismaService.appointment.delete.mockRejectedValue(dbError);
+
+      // Act & Assert
+      await expect(service.deleteAppointmentById(appointmentId)).rejects.toThrow(dbError);
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+      });
+      expect(mockPrismaService.appointment.delete).toHaveBeenCalledWith({
+        where: { id: appointmentId },
+      });
+    });
+
+    it('should work with different appointment IDs', async () => {
+      // Arrange
+      const differentAppointmentId = 999;
+      const differentMockAppointment = {
+        ...mockAppointment,
+        id: differentAppointmentId,
+      };
+      mockPrismaService.appointment.findUnique.mockResolvedValue(differentMockAppointment);
+      mockPrismaService.appointment.delete.mockResolvedValue(differentMockAppointment);
+
+      // Act
+      const result = await service.deleteAppointmentById(differentAppointmentId);
+
+      // Assert
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: differentAppointmentId },
+      });
+      expect(mockPrismaService.appointment.delete).toHaveBeenCalledWith({
+        where: { id: differentAppointmentId },
+      });
+      expect(result).toEqual(differentMockAppointment);
+    });
+
+    it('should handle zero as appointment ID', async () => {
+      // Arrange
+      const zeroAppointmentId = 0;
+      mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.deleteAppointmentById(zeroAppointmentId)).rejects.toThrow(
+        new NotFoundException(`Rendez-vous avec l'ID ${zeroAppointmentId} non trouvé`)
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: zeroAppointmentId },
+      });
+      expect(mockPrismaService.appointment.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle negative appointment ID', async () => {
+      // Arrange
+      const negativeAppointmentId = -1;
+      mockPrismaService.appointment.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.deleteAppointmentById(negativeAppointmentId)).rejects.toThrow(
+        new NotFoundException(`Rendez-vous avec l'ID ${negativeAppointmentId} non trouvé`)
+      );
+
+      expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
+        where: { id: negativeAppointmentId },
+      });
+      expect(mockPrismaService.appointment.delete).not.toHaveBeenCalled();
     });
   });
 });

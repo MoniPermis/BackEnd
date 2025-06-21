@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Post,
@@ -33,5 +35,11 @@ export class AppointmentController {
       id,
       updateAppointmentDto,
     );
+  }
+
+  @HttpCode(204)
+  @Delete(':id')
+  async deleteAppointment(@Param('id', ParseIntPipe) id: number) {
+    return this.appointmentService.deleteAppointmentById(id);
   }
 }
