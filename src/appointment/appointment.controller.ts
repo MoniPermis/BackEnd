@@ -8,7 +8,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
-import { CreateAppointmentDto } from './dto';
+import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 
 @Controller('appointments')
 export class AppointmentController {
@@ -27,7 +27,7 @@ export class AppointmentController {
   @Put(':id')
   async updateAppointment(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateAppointmentDto: CreateAppointmentDto,
+    @Body() updateAppointmentDto: UpdateAppointmentDto,
   ) {
     return this.appointmentService.modifyAppointmentById(
       id,
