@@ -164,4 +164,20 @@ export class AppointmentService {
       data: updateData,
     });
   }
+
+  async deleteAppointmentById(appointmentId: number) {
+    const appointment = await this.prismaService.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `Rendez-vous avec l'ID ${appointmentId} non trouvé`,
+      );
+    }
+
+    return this.prismaService.appointment.delete({
+      where: { id: appointmentId },
+    });
+  }
 }
