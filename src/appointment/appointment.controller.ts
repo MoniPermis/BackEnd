@@ -5,9 +5,10 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
 } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
-import { CreateAppointmentDto } from './dto';
+import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 
 @Controller('appointments')
 export class AppointmentController {
@@ -21,5 +22,16 @@ export class AppointmentController {
   @Get(':id')
   async getAppointmentById(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentService.getAppointmentById(id);
+  }
+
+  @Put(':id')
+  async updateAppointment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateAppointmentDto: UpdateAppointmentDto,
+  ) {
+    return this.appointmentService.modifyAppointmentById(
+      id,
+      updateAppointmentDto,
+    );
   }
 }

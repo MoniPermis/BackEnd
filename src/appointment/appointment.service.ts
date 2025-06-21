@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
+import { UpdateAppointmentDto } from './dto';
 
 @Injectable()
 export class AppointmentService {
@@ -98,5 +99,69 @@ export class AppointmentService {
     }
 
     return appointment;
+  }
+
+  async modifyAppointmentById(
+    appointmentId: number,
+    appointmentData: UpdateAppointmentDto,
+  ) {
+    const appointment = await this.prismaService.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `Rendez-vous avec l'ID ${appointmentId} non trouvé`,
+      );
+    }
+
+    if (appointmentData.meetingPointId) {
+      const newMeetingPoint = await this.prismaService.meetingPoint.findUnique({
+        where: { id: appointmentData.meetingPointId },
+      });
+
+      if (!newMeetingPoint) {
+        throw new NotFoundException(
+          `Point de rencontre avec l'ID ${appointmentData.meetingPointId} non trouvé`,
+        );
+      }
+    }
+
+    if (appointmentData.startTime || appointmentData.endTime) {
+      await this.scheduleValidation.checkAppointmentConflicts(
+        appointment.instructorId,
+        appointmentData.startTime
+          ? new Date(appointmentData.startTime)
+          : appointment.startTime,
+        appointmentData.endTime
+          ? new Date(appointmentData.endTime)
+          : appointment.endTime,
+        appointmentId,
+      );
+    }
+
+    const updateData: Record<string, any> = {
+      modifiedAt: new Date(),
+      ...(appointmentData.meetingPointId !== undefined && {
+        meetingPointId: appointmentData.meetingPointId,
+      }),
+      ...(appointmentData.startTime !== undefined && {
+        startTime: new Date(appointmentData.startTime),
+      }),
+      ...(appointmentData.endTime !== undefined && {
+        endTime: new Date(appointmentData.endTime),
+      }),
+      ...(appointmentData.status !== undefined && {
+        status: appointmentData.status,
+      }),
+      ...(appointmentData.description !== undefined && {
+        description: appointmentData.description,
+      }),
+    };
+
+    return this.prismaService.appointment.update({
+      where: { id: appointmentId },
+      data: updateData,
+    });
   }
 }
