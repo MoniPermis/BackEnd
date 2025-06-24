@@ -454,27 +454,6 @@ paths:
           description: Rendez-vous supprimé avec succès
         "404":
           description: Rendez-vous non trouvé
-  /appointments/{id}/validate:
-    put:
-      tags:
-        - Rendez-vous
-      summary: Valider un rendez-vous
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: Rendez-vous validé avec succès
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Appointment'
-        "404":
-          description: Rendez-vous non trouvé
   /meeting-points:
     get:
       tags:
