@@ -1,8 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { CreateInstructorDto } from './dto';
+import { CreateInstructorDto, CreateStudentDto } from './dto';
 import * as argon from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
-
 @Injectable()
 export class AuthService {
   constructor(private prismaService: PrismaService) {}
@@ -73,6 +72,31 @@ export class AuthService {
         iban: instructor.iban,
         bic: hashedBic,
         siret: instructor.siret,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  async studentSignup(student: CreateStudentDto) {
+    const existingStudent = await this.prismaService.student.findFirst({
+      where: { email: student.email },
+    });
+
+    if (existingStudent) {
+      throw new ConflictException('A student with this email already exists');
+    }
+
+    const hashedPassword = await argon.hash(student.password);
+
+    return this.prismaService.student.create({
+      data: {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        password: hashedPassword,
+        phoneNumber: student.phoneNumber,
+        profilePictureUrl: student.profilePictureUrl || null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

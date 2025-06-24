@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateInstructorDto } from './dto';
+import { CreateInstructorDto, CreateStudentDto } from './dto';
 import * as argon from 'argon2';
 
 jest.mock('argon2');
@@ -387,6 +387,350 @@ describe('AuthService', () => {
         .spyOn(global, 'Date')
         .mockImplementation(() => fixedDate);
       dateSpy.mockRestore();
+    });
+  });
+});
+
+describe('AuthService - studentSignup', () => {
+  let service: AuthService;
+  let mockPrismaService: {
+    student: {
+      findFirst: jest.Mock;
+      create: jest.Mock;
+    };
+  };
+
+  const mockCreateStudentDto: CreateStudentDto = {
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'jane.smith@example.com',
+    password: 'password123',
+    phoneNumber: '+33123456789',
+    profilePictureUrl: 'https://example.com/profile.jpg',
+  };
+
+  const mockCreatedStudent = {
+    id: 1,
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'jane.smith@example.com',
+    password: 'hashedPassword',
+    phoneNumber: '+33123456789',
+    profilePictureUrl: 'https://example.com/profile.jpg',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(async () => {
+    mockPrismaService = {
+      student: {
+        findFirst: jest.fn(),
+        create: jest.fn(),
+      },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<AuthService>(AuthService);
+
+    jest.clearAllMocks();
+    mockedArgon.hash.mockResolvedValue('hashedPassword');
+  });
+
+  describe('studentSignup', () => {
+    it('should successfully create a new student with all fields', async () => {
+      // Arrange
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockPrismaService.student.create.mockResolvedValue(mockCreatedStudent);
+
+      // Act
+      const result = await service.studentSignup(mockCreateStudentDto);
+
+      // Assert
+      expect(mockPrismaService.student.findFirst).toHaveBeenCalledWith({
+        where: { email: mockCreateStudentDto.email },
+      });
+
+      expect(mockedArgon.hash).toHaveBeenCalledWith(
+        mockCreateStudentDto.password,
+      );
+
+      expect(mockPrismaService.student.create).toHaveBeenCalledWith({
+        data: {
+          firstName: mockCreateStudentDto.firstName,
+          lastName: mockCreateStudentDto.lastName,
+          email: mockCreateStudentDto.email,
+          password: 'hashedPassword',
+          phoneNumber: mockCreateStudentDto.phoneNumber,
+          profilePictureUrl: mockCreateStudentDto.profilePictureUrl,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          createdAt: expect.any(Date),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          updatedAt: expect.any(Date),
+        },
+      });
+
+      expect(result).toEqual(mockCreatedStudent);
+    });
+
+    it('should successfully create a new student without profilePictureUrl', async () => {
+      // Arrange
+      const dtoWithoutProfilePicture = { ...mockCreateStudentDto };
+      delete dtoWithoutProfilePicture.profilePictureUrl;
+
+      const expectedCreatedStudent = {
+        ...mockCreatedStudent,
+        profilePictureUrl: null,
+      };
+
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockPrismaService.student.create.mockResolvedValue(
+        expectedCreatedStudent,
+      );
+
+      // Act
+      const result = await service.studentSignup(dtoWithoutProfilePicture);
+
+      // Assert
+      expect(mockPrismaService.student.create).toHaveBeenCalledWith({
+        data: {
+          firstName: dtoWithoutProfilePicture.firstName,
+          lastName: dtoWithoutProfilePicture.lastName,
+          email: dtoWithoutProfilePicture.email,
+          password: 'hashedPassword',
+          phoneNumber: dtoWithoutProfilePicture.phoneNumber,
+          profilePictureUrl: null,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          createdAt: expect.any(Date),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          updatedAt: expect.any(Date),
+        },
+      });
+
+      expect(result).toEqual(expectedCreatedStudent);
+    });
+
+    it('should throw ConflictException when student with same email already exists', async () => {
+      // Arrange
+      const existingStudent = {
+        id: 2,
+        email: mockCreateStudentDto.email,
+        firstName: 'Different',
+        lastName: 'Student',
+      };
+
+      mockPrismaService.student.findFirst.mockResolvedValue(existingStudent);
+
+      // Act & Assert
+      await expect(service.studentSignup(mockCreateStudentDto)).rejects.toThrow(
+        new ConflictException('A student with this email already exists'),
+      );
+
+      expect(mockPrismaService.student.findFirst).toHaveBeenCalledWith({
+        where: { email: mockCreateStudentDto.email },
+      });
+
+      expect(mockedArgon.hash).not.toHaveBeenCalled();
+      expect(mockPrismaService.student.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle argon hashing errors gracefully', async () => {
+      // Arrange
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockedArgon.hash.mockRejectedValue(new Error('Hashing failed'));
+
+      // Act & Assert
+      await expect(service.studentSignup(mockCreateStudentDto)).rejects.toThrow(
+        'Hashing failed',
+      );
+
+      expect(mockPrismaService.student.findFirst).toHaveBeenCalledWith({
+        where: { email: mockCreateStudentDto.email },
+      });
+
+      expect(mockedArgon.hash).toHaveBeenCalledWith(
+        mockCreateStudentDto.password,
+      );
+      expect(mockPrismaService.student.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle database errors during student creation gracefully', async () => {
+      // Arrange
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockPrismaService.student.create.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
+
+      // Act & Assert
+      await expect(service.studentSignup(mockCreateStudentDto)).rejects.toThrow(
+        'Database connection failed',
+      );
+
+      expect(mockPrismaService.student.findFirst).toHaveBeenCalledWith({
+        where: { email: mockCreateStudentDto.email },
+      });
+
+      expect(mockedArgon.hash).toHaveBeenCalledWith(
+        mockCreateStudentDto.password,
+      );
+      expect(mockPrismaService.student.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.objectContaining({
+            email: mockCreateStudentDto.email,
+            password: 'hashedPassword',
+          }),
+        }),
+      );
+    });
+
+    it('should handle database errors during email check gracefully', async () => {
+      // Arrange
+      mockPrismaService.student.findFirst.mockRejectedValue(
+        new Error('Database query failed'),
+      );
+
+      // Act & Assert
+      await expect(service.studentSignup(mockCreateStudentDto)).rejects.toThrow(
+        'Database query failed',
+      );
+
+      expect(mockPrismaService.student.findFirst).toHaveBeenCalledWith({
+        where: { email: mockCreateStudentDto.email },
+      });
+
+      expect(mockedArgon.hash).not.toHaveBeenCalled();
+      expect(mockPrismaService.student.create).not.toHaveBeenCalled();
+    });
+
+    it('should properly format dates when creating student', async () => {
+      // Arrange
+      const fixedDate = new Date('2023-01-01T00:00:00.000Z');
+      const dateSpy = jest
+        .spyOn(global, 'Date')
+        .mockImplementation(() => fixedDate);
+
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockPrismaService.student.create.mockResolvedValue(mockCreatedStudent);
+
+      // Act
+      await service.studentSignup(mockCreateStudentDto);
+
+      // Assert
+      expect(mockPrismaService.student.create).toHaveBeenCalledWith({
+        data: {
+          firstName: mockCreateStudentDto.firstName,
+          lastName: mockCreateStudentDto.lastName,
+          email: mockCreateStudentDto.email,
+          password: 'hashedPassword',
+          phoneNumber: mockCreateStudentDto.phoneNumber,
+          profilePictureUrl: mockCreateStudentDto.profilePictureUrl,
+          createdAt: fixedDate,
+          updatedAt: fixedDate,
+        },
+      });
+
+      // Restore Date
+      dateSpy.mockRestore();
+    });
+
+    it('should handle empty string profilePictureUrl', async () => {
+      // Arrange
+      const dtoWithEmptyProfilePicture = {
+        ...mockCreateStudentDto,
+        profilePictureUrl: '',
+      };
+
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockPrismaService.student.create.mockResolvedValue(mockCreatedStudent);
+
+      // Act
+      await service.studentSignup(dtoWithEmptyProfilePicture);
+
+      // Assert
+      expect(mockPrismaService.student.create).toHaveBeenCalledWith({
+        data: {
+          firstName: dtoWithEmptyProfilePicture.firstName,
+          lastName: dtoWithEmptyProfilePicture.lastName,
+          email: dtoWithEmptyProfilePicture.email,
+          password: 'hashedPassword',
+          phoneNumber: dtoWithEmptyProfilePicture.phoneNumber,
+          profilePictureUrl: null,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          createdAt: expect.any(Date),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          updatedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should verify password is hashed before storing', async () => {
+      // Arrange
+      const plainPassword = 'mySecretPassword';
+      const hashedPassword = 'hashedSecretPassword';
+      const studentDto = { ...mockCreateStudentDto, password: plainPassword };
+
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockPrismaService.student.create.mockResolvedValue(mockCreatedStudent);
+      mockedArgon.hash.mockResolvedValue(hashedPassword);
+
+      // Act
+      await service.studentSignup(studentDto);
+
+      // Assert
+      expect(mockedArgon.hash).toHaveBeenCalledWith(plainPassword);
+      expect(mockPrismaService.student.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.objectContaining({
+            password: hashedPassword,
+          }),
+        }),
+      );
+
+      // Verify the plain password is not stored
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const createCall = mockPrismaService.student.create.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(createCall.data.password).not.toBe(plainPassword);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(createCall.data.password).toBe(hashedPassword);
+    });
+
+    it('should handle case-sensitive email uniqueness', async () => {
+      // Arrange
+      const upperCaseEmailDto = {
+        ...mockCreateStudentDto,
+        email: mockCreateStudentDto.email.toUpperCase(),
+      };
+
+      mockPrismaService.student.findFirst.mockResolvedValue(null);
+      mockPrismaService.student.create.mockResolvedValue(mockCreatedStudent);
+
+      // Act
+      await service.studentSignup(upperCaseEmailDto);
+
+      // Assert
+      expect(mockPrismaService.student.findFirst).toHaveBeenCalledWith({
+        where: { email: upperCaseEmailDto.email },
+      });
+
+      expect(mockPrismaService.student.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.objectContaining({
+            email: upperCaseEmailDto.email,
+          }),
+        }),
+      );
     });
   });
 });
