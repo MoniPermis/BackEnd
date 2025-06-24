@@ -1697,7 +1697,9 @@ describe('AppointmentService', () => {
 
     it('should successfully delete an existing appointment', async () => {
       // Arrange
-      mockPrismaService.appointment.findUnique.mockResolvedValue(mockAppointment);
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
       mockPrismaService.appointment.delete.mockResolvedValue(mockAppointment);
 
       // Act
@@ -1718,8 +1720,12 @@ describe('AppointmentService', () => {
       mockPrismaService.appointment.findUnique.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.deleteAppointmentById(appointmentId)).rejects.toThrow(
-        new NotFoundException(`Rendez-vous avec l'ID ${appointmentId} non trouvé`)
+      await expect(
+        service.deleteAppointmentById(appointmentId),
+      ).rejects.toThrow(
+        new NotFoundException(
+          `Rendez-vous avec l'ID ${appointmentId} non trouvé`,
+        ),
       );
 
       expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
@@ -1734,7 +1740,9 @@ describe('AppointmentService', () => {
       mockPrismaService.appointment.findUnique.mockRejectedValue(dbError);
 
       // Act & Assert
-      await expect(service.deleteAppointmentById(appointmentId)).rejects.toThrow(dbError);
+      await expect(
+        service.deleteAppointmentById(appointmentId),
+      ).rejects.toThrow(dbError);
 
       expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
         where: { id: appointmentId },
@@ -1745,11 +1753,15 @@ describe('AppointmentService', () => {
     it('should handle database errors during delete operation', async () => {
       // Arrange
       const dbError = new Error('Delete operation failed');
-      mockPrismaService.appointment.findUnique.mockResolvedValue(mockAppointment);
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        mockAppointment,
+      );
       mockPrismaService.appointment.delete.mockRejectedValue(dbError);
 
       // Act & Assert
-      await expect(service.deleteAppointmentById(appointmentId)).rejects.toThrow(dbError);
+      await expect(
+        service.deleteAppointmentById(appointmentId),
+      ).rejects.toThrow(dbError);
 
       expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
         where: { id: appointmentId },
@@ -1766,11 +1778,17 @@ describe('AppointmentService', () => {
         ...mockAppointment,
         id: differentAppointmentId,
       };
-      mockPrismaService.appointment.findUnique.mockResolvedValue(differentMockAppointment);
-      mockPrismaService.appointment.delete.mockResolvedValue(differentMockAppointment);
+      mockPrismaService.appointment.findUnique.mockResolvedValue(
+        differentMockAppointment,
+      );
+      mockPrismaService.appointment.delete.mockResolvedValue(
+        differentMockAppointment,
+      );
 
       // Act
-      const result = await service.deleteAppointmentById(differentAppointmentId);
+      const result = await service.deleteAppointmentById(
+        differentAppointmentId,
+      );
 
       // Assert
       expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
@@ -1788,8 +1806,12 @@ describe('AppointmentService', () => {
       mockPrismaService.appointment.findUnique.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.deleteAppointmentById(zeroAppointmentId)).rejects.toThrow(
-        new NotFoundException(`Rendez-vous avec l'ID ${zeroAppointmentId} non trouvé`)
+      await expect(
+        service.deleteAppointmentById(zeroAppointmentId),
+      ).rejects.toThrow(
+        new NotFoundException(
+          `Rendez-vous avec l'ID ${zeroAppointmentId} non trouvé`,
+        ),
       );
 
       expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
@@ -1804,8 +1826,12 @@ describe('AppointmentService', () => {
       mockPrismaService.appointment.findUnique.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.deleteAppointmentById(negativeAppointmentId)).rejects.toThrow(
-        new NotFoundException(`Rendez-vous avec l'ID ${negativeAppointmentId} non trouvé`)
+      await expect(
+        service.deleteAppointmentById(negativeAppointmentId),
+      ).rejects.toThrow(
+        new NotFoundException(
+          `Rendez-vous avec l'ID ${negativeAppointmentId} non trouvé`,
+        ),
       );
 
       expect(mockPrismaService.appointment.findUnique).toHaveBeenCalledWith({
