@@ -142,11 +142,6 @@ export class AuthService {
       throw new ConflictException('Invalid user type');
     }
 
-    // This check is now redundant but kept for safety
-    if (!user) {
-      throw new ConflictException('Invalid credentials');
-    }
-
     const passwordMatches = await argon.verify(
       user.password,
       authUser.password,
