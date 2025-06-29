@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateInstructorDto, CreateStudentDto } from './dto';
+import { AuthUserDto, CreateInstructorDto, CreateStudentDto } from './dto';
 import * as argon from 'argon2';
 
 jest.mock('argon2');
@@ -19,6 +20,9 @@ describe('AuthService', () => {
       findFirst: jest.Mock;
       create: jest.Mock;
     };
+  };
+  let mockJwtService: {
+    signAsync: jest.Mock;
   };
 
   const mockCreateInstructorDto: CreateInstructorDto = {
@@ -83,12 +87,20 @@ describe('AuthService', () => {
       },
     };
 
+    mockJwtService = {
+      signAsync: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
         },
       ],
     }).compile();
@@ -399,6 +411,9 @@ describe('AuthService - studentSignup', () => {
       create: jest.Mock;
     };
   };
+  let mockJwtService: {
+    signAsync: jest.Mock;
+  };
 
   const mockCreateStudentDto: CreateStudentDto = {
     firstName: 'Jane',
@@ -429,12 +444,20 @@ describe('AuthService - studentSignup', () => {
       },
     };
 
+    mockJwtService = {
+      signAsync: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
         },
       ],
     }).compile();
@@ -729,6 +752,301 @@ describe('AuthService - studentSignup', () => {
           data: expect.objectContaining({
             email: upperCaseEmailDto.email,
           }),
+        }),
+      );
+    });
+  });
+});
+
+describe('AuthService - login and signToken', () => {
+  let service: AuthService;
+  let mockPrismaService: {
+    instructor: {
+      findUnique: jest.Mock;
+    };
+    student: {
+      findUnique: jest.Mock;
+    };
+  };
+  let mockJwtService: {
+    signAsync: jest.Mock;
+  };
+
+  const mockAuthUserDto: AuthUserDto = {
+    email: 'test@example.com',
+    password: 'password123',
+    userType: 'instructor',
+  };
+
+  const mockInstructor = {
+    id: 1,
+    email: 'test@example.com',
+    password: 'hashedPassword',
+  };
+
+  const mockStudent = {
+    id: 2,
+    email: 'student@example.com',
+    password: 'hashedPassword',
+  };
+
+  beforeEach(async () => {
+    mockPrismaService = {
+      instructor: {
+        findUnique: jest.fn(),
+      },
+      student: {
+        findUnique: jest.fn(),
+      },
+    };
+
+    mockJwtService = {
+      signAsync: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<AuthService>(AuthService);
+
+    jest.clearAllMocks();
+    mockedArgon.verify.mockResolvedValue(true);
+    process.env.JWT_SECRET = 'test-secret';
+  });
+
+  describe('login', () => {
+    it('should successfully authenticate an instructor', async () => {
+      // Arrange
+      mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
+      mockJwtService.signAsync.mockResolvedValue('jwt-token');
+
+      // Act
+      const result = await service.login(mockAuthUserDto);
+
+      // Assert
+      expect(mockPrismaService.instructor.findUnique).toHaveBeenCalledWith({
+        where: { email: mockAuthUserDto.email },
+        select: { id: true, password: true, email: true },
+      });
+      expect(mockedArgon.verify).toHaveBeenCalledWith(
+        mockInstructor.password,
+        mockAuthUserDto.password,
+      );
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        {
+          sub: mockInstructor.id,
+          email: mockInstructor.email,
+          userType: 'instructor',
+        },
+        {
+          expiresIn: '15m',
+          secret: 'test-secret',
+        },
+      );
+      expect(result).toEqual({ access_token: 'jwt-token' });
+    });
+
+    it('should successfully authenticate a student', async () => {
+      // Arrange
+      const studentAuthDto: AuthUserDto = {
+        ...mockAuthUserDto,
+        userType: 'student' as const,
+        email: 'student@example.com',
+      };
+      mockPrismaService.student.findUnique.mockResolvedValue(mockStudent);
+      mockJwtService.signAsync.mockResolvedValue('jwt-token');
+
+      // Act
+      const result = await service.login(studentAuthDto);
+
+      // Assert
+      expect(mockPrismaService.student.findUnique).toHaveBeenCalledWith({
+        where: { email: studentAuthDto.email },
+        select: { id: true, password: true, email: true },
+      });
+      expect(mockedArgon.verify).toHaveBeenCalledWith(
+        mockStudent.password,
+        studentAuthDto.password,
+      );
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        {
+          sub: mockStudent.id,
+          email: mockStudent.email,
+          userType: 'student',
+        },
+        {
+          expiresIn: '15m',
+          secret: 'test-secret',
+        },
+      );
+      expect(result).toEqual({ access_token: 'jwt-token' });
+    });
+
+    it('should throw ConflictException when instructor is not found', async () => {
+      // Arrange
+      mockPrismaService.instructor.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.login(mockAuthUserDto)).rejects.toThrow(
+        new ConflictException('Invalid credentials'),
+      );
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when student is not found', async () => {
+      // Arrange
+      const studentAuthDto: AuthUserDto = {
+        ...mockAuthUserDto,
+        userType: 'student' as const,
+      };
+      mockPrismaService.student.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.login(studentAuthDto)).rejects.toThrow(
+        new ConflictException('Invalid credentials'),
+      );
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when password does not match', async () => {
+      // Arrange
+      mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
+      mockedArgon.verify.mockResolvedValue(false);
+
+      // Act & Assert
+      await expect(service.login(mockAuthUserDto)).rejects.toThrow(
+        new ConflictException('Invalid credentials'),
+      );
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when userType is invalid', async () => {
+      // Arrange
+      const invalidUserTypeDto = {
+        ...mockAuthUserDto,
+        userType: 'invalid' as 'instructor' | 'student',
+      };
+
+      // Act & Assert
+      await expect(service.login(invalidUserTypeDto)).rejects.toThrow(
+        new ConflictException('Invalid user type'),
+      );
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+
+    it('should handle argon verification errors gracefully', async () => {
+      // Arrange
+      mockPrismaService.instructor.findUnique.mockResolvedValue(mockInstructor);
+      mockedArgon.verify.mockRejectedValue(new Error('Verification failed'));
+
+      // Act & Assert
+      await expect(service.login(mockAuthUserDto)).rejects.toThrow(
+        'Verification failed',
+      );
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+
+    it('should handle database errors gracefully', async () => {
+      // Arrange
+      mockPrismaService.instructor.findUnique.mockRejectedValue(
+        new Error('Database error'),
+      );
+
+      // Act & Assert
+      await expect(service.login(mockAuthUserDto)).rejects.toThrow(
+        'Database error',
+      );
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('signTokenAsync', () => {
+    it('should sign a token for an instructor successfully', async () => {
+      // Arrange
+      mockJwtService.signAsync.mockResolvedValue('jwt-token');
+      const id = 1;
+      const email = 'test@example.com';
+      const userType = 'instructor';
+
+      // Act
+      const result = await service.signTokenAsync(id, email, userType);
+
+      // Assert
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        {
+          sub: id,
+          email,
+          userType,
+        },
+        {
+          expiresIn: '15m',
+          secret: 'test-secret',
+        },
+      );
+      expect(result).toEqual({ access_token: 'jwt-token' });
+    });
+
+    it('should sign a token for a student successfully', async () => {
+      // Arrange
+      mockJwtService.signAsync.mockResolvedValue('jwt-token');
+      const id = 2;
+      const email = 'student@example.com';
+      const userType = 'student';
+
+      // Act
+      const result = await service.signTokenAsync(id, email, userType);
+
+      // Assert
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        {
+          sub: id,
+          email,
+          userType,
+        },
+        {
+          expiresIn: '15m',
+          secret: 'test-secret',
+        },
+      );
+      expect(result).toEqual({ access_token: 'jwt-token' });
+    });
+
+    it('should handle JWT signing errors gracefully', async () => {
+      // Arrange
+      mockJwtService.signAsync.mockRejectedValue(
+        new Error('JWT signing failed'),
+      );
+
+      // Act & Assert
+      await expect(
+        service.signTokenAsync(1, 'test@example.com', 'instructor'),
+      ).rejects.toThrow('JWT signing failed');
+    });
+
+    it('should use environment variable for JWT secret', async () => {
+      // Arrange
+      process.env.JWT_SECRET = 'custom-secret';
+      mockJwtService.signAsync.mockResolvedValue('jwt-token');
+
+      // Act
+      await service.signTokenAsync(1, 'test@example.com', 'instructor');
+
+      // Assert
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          secret: 'custom-secret',
         }),
       );
     });
