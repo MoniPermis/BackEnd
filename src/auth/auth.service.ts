@@ -1,10 +1,22 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { CreateInstructorDto, CreateStudentDto } from './dto';
+import { AuthUserDto, CreateInstructorDto, CreateStudentDto } from './dto';
 import * as argon from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+
+// Define a common interface for user authentication
+interface AuthenticatedUser {
+  id: number;
+  password: string;
+  email: string;
+}
+
 @Injectable()
 export class AuthService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private jwt: JwtService,
+  ) {}
 
   async instructorSignup(instructor: CreateInstructorDto) {
     const existingInstructor = await this.prismaService.instructor.findFirst({
@@ -101,5 +113,70 @@ export class AuthService {
         updatedAt: new Date(),
       },
     });
+  }
+
+  async login(authUser: AuthUserDto) {
+    let user: AuthenticatedUser | null = null;
+
+    if (authUser.userType === 'instructor') {
+      const instructor = await this.prismaService.instructor.findUnique({
+        where: { email: authUser.email },
+        select: { id: true, password: true, email: true },
+      });
+
+      if (!instructor) {
+        throw new ConflictException('Invalid credentials');
+      }
+      user = instructor;
+    } else if (authUser.userType === 'student') {
+      const student = await this.prismaService.student.findUnique({
+        where: { email: authUser.email },
+        select: { id: true, password: true, email: true },
+      });
+
+      if (!student) {
+        throw new ConflictException('Invalid credentials');
+      }
+      user = student;
+    } else {
+      throw new ConflictException('Invalid user type');
+    }
+
+    // This check is now redundant but kept for safety
+    if (!user) {
+      throw new ConflictException('Invalid credentials');
+    }
+
+    const passwordMatches = await argon.verify(
+      user.password,
+      authUser.password,
+    );
+    if (!passwordMatches) {
+      throw new ConflictException('Invalid credentials');
+    }
+
+    return this.signTokenAsync(user.id, authUser.email, authUser.userType);
+  }
+
+  async signTokenAsync(
+    id: number,
+    email: string,
+    userType: 'instructor' | 'student',
+  ): Promise<{ access_token: string }> {
+    const payload = {
+      sub: id,
+      email,
+      userType,
+    };
+
+    const secret = process.env.JWT_SECRET;
+    const token = await this.jwt.signAsync(payload, {
+      expiresIn: '15m',
+      secret: secret,
+    });
+
+    return {
+      access_token: token,
+    };
   }
 }
