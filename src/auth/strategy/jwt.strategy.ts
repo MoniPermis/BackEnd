@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: UserJwTPayload) {
-    if (payload.userType == 'instructor') {
+    if (payload.userType === 'instructor') {
       const instructor = await this.prisma.instructor.findUnique({
         where: {
           id: payload.id,
@@ -34,7 +34,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...instructorWithoutPassword } = instructor;
       return instructorWithoutPassword;
-    } else if (payload.userType == 'student') {
+    } else if (payload.userType === 'student') {
       const student = await this.prisma.student.findUnique({
         where: {
           id: payload.id,
