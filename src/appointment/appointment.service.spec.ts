@@ -4,6 +4,40 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 import { NotFoundException } from '@nestjs/common';
+import { AuthenticatedInstructor, AuthenticatedStudent } from '../auth/dto';
+import { Appointment, MeetingPoint, Payment } from '@prisma/client';
+
+// Define simplified types for the included relations in the tests
+// These match the 'select' fields in your getAppointmentsByUser method
+interface StudentIncluded {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profilePictureUrl: string | null;
+}
+
+interface InstructorIncluded {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profilePictureUrl: string | null;
+}
+
+// Define the full type of appointment when fetched by an instructor
+// (includes the 'student' relation)
+type InstructorFetchedAppointment = Appointment & {
+  student: StudentIncluded;
+  meetingPoint: MeetingPoint;
+  payment: Payment | null;
+};
+
+// Define the full type of appointment when fetched by a student
+// (includes the 'instructor' relation)
+type StudentFetchedAppointment = Appointment & {
+  instructor: InstructorIncluded;
+  meetingPoint: MeetingPoint;
+  payment: Payment | null;
+};
 
 describe('AppointmentService', () => {
   let service: AppointmentService;
@@ -48,13 +82,182 @@ describe('AppointmentService', () => {
 
     service = module.get<AppointmentService>(AppointmentService);
 
-    // Clear all mocks before each test
     jest.clearAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  // --- Mock Data (moved here for clarity, ensure they are accessible in your file) ---
+  const mockInstructorAppointments: InstructorFetchedAppointment[] = [
+    {
+      id: 1,
+      studentId: 2, // Assuming studentId 2 for student@test.com
+      instructorId: 1,
+      meetingPointId: 3,
+      paymentId: 1,
+      startTime: new Date('2024-07-01T10:00:00.000Z'),
+      endTime: new Date('2024-07-01T11:00:00.000Z'),
+      status: 'CONFIRMED',
+      description: 'Instructor lesson 1',
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      student: {
+        id: 2,
+        firstName: 'Jane',
+        lastName: 'Smith',
+        profilePictureUrl: null,
+      },
+      meetingPoint: {
+        id: 3,
+        name: 'Meeting Point A',
+        latitude: 10,
+        longitude: 20,
+        instructorId: 1, // Add missing fields based on your schema
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+      },
+      payment: {
+        id: 1,
+        studentId: 2,
+        priceId: 1,
+        datetime: new Date(),
+      },
+    },
+    {
+      id: 2,
+      studentId: 2,
+      instructorId: 1,
+      meetingPointId: 4,
+      paymentId: null, // Null payment for testing
+      startTime: new Date('2024-07-02T10:00:00.000Z'),
+      endTime: new Date('2024-07-02T11:00:00.000Z'),
+      status: 'PENDING',
+      description: null, // Null description for testing
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      student: {
+        id: 2,
+        firstName: 'Jane',
+        lastName: 'Smith',
+        profilePictureUrl: null,
+      },
+      meetingPoint: {
+        id: 4,
+        name: 'Meeting Point B',
+        latitude: 15,
+        longitude: 25,
+        instructorId: 1, // Add missing fields
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+      },
+      payment: null,
+    },
+  ];
+
+  const mockStudentAppointments: StudentFetchedAppointment[] = [
+    {
+      id: 3,
+      studentId: 2,
+      instructorId: 1, // Assuming instructorId 1 for instructor@test.com
+      meetingPointId: 3,
+      paymentId: 2,
+      startTime: new Date('2024-07-03T10:00:00.000Z'),
+      endTime: new Date('2024-07-03T11:00:00.000Z'),
+      status: 'COMPLETED',
+      description: 'Student lesson 1',
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      instructor: {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Doe',
+        profilePictureUrl: null,
+      },
+      meetingPoint: {
+        id: 3,
+        name: 'Meeting Point A',
+        latitude: 10,
+        longitude: 20,
+        instructorId: 1, // Add missing fields
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+      },
+      payment: {
+        id: 2,
+        studentId: 2,
+        priceId: 1,
+        datetime: new Date(),
+      },
+    },
+    {
+      id: 4,
+      studentId: 2,
+      instructorId: 1,
+      meetingPointId: 4,
+      paymentId: null,
+      startTime: new Date('2024-07-04T10:00:00.000Z'),
+      endTime: new Date('2024-07-04T11:00:00.000Z'),
+      status: 'CANCELLED',
+      description: 'Student lesson 2 cancelled',
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      instructor: {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Doe',
+        profilePictureUrl: null,
+      },
+      meetingPoint: {
+        id: 4,
+        name: 'Meeting Point B',
+        latitude: 15,
+        longitude: 25,
+        instructorId: 1, // Add missing fields
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+      },
+      payment: null,
+    },
+  ];
+
+  const mockInstructorUser: AuthenticatedInstructor = {
+    id: 1,
+    priceId: 1,
+    firstName: 'John',
+    lastName: 'Doe',
+    gender: 'Male',
+    email: 'instructor@test.com',
+    phoneNumber: '123456789',
+    address: '123 Main St',
+    siret: '12345678901234',
+    driverLicenceUrl: 'http://example.com/license.pdf',
+    registrationCertificateUrl: 'http://example.com/registration.pdf',
+    insuranceCertificateUrl: 'http://example.com/insurance.pdf',
+    degreeUrl: 'http://example.com/degree.pdf',
+    teachingAuthorizationUrl: 'http://example.com/authorization.pdf',
+    profilePictureUrl: 'http://example.com/profile.jpg',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+    iban: 'FR1420041010050500013M02606',
+    bic: 'CCBPFRPPXXX',
+  };
+
+  const mockStudentUser: AuthenticatedStudent = {
+    id: 2,
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'student@test.com',
+    phoneNumber: '987654321',
+    neph: 123456789,
+    creditCardId: 1,
+    profilePictureUrl: 'http://example.com/student.jpg',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
+
+  // --- End Mock Data ---
 
   describe('createAppointment', () => {
     const mockCreateAppointmentDto: CreateAppointmentDto = {
@@ -1838,6 +2041,346 @@ describe('AppointmentService', () => {
         where: { id: negativeAppointmentId },
       });
       expect(mockPrismaService.appointment.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getAppointmentsByUser', () => {
+    it('should return appointments for an instructor with correct relations and excluded fields', async () => {
+      // Arrange
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        mockInstructorAppointments,
+      );
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockInstructorUser);
+
+      // Assert
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: { instructorId: mockInstructorUser.id },
+        include: {
+          student: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePictureUrl: true,
+            },
+          },
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: { startTime: 'asc' },
+      });
+      // Cast the result to the expected type for assertion
+      expect(result as InstructorFetchedAppointment[]).toEqual(
+        mockInstructorAppointments,
+      );
+    });
+
+    it('should return empty array when an instructor has no appointments', async () => {
+      // Arrange
+      mockPrismaService.appointment.findMany.mockResolvedValue([]);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockInstructorUser);
+
+      // Assert
+      expect(result).toEqual([]);
+    });
+
+    it('should return appointments for a student with correct relations and excluded fields', async () => {
+      // Arrange
+      mockPrismaService.appointment.findMany.mockResolvedValue(
+        mockStudentAppointments,
+      );
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockStudentUser);
+
+      // Assert
+      expect(mockPrismaService.appointment.findMany).toHaveBeenCalledWith({
+        where: { studentId: mockStudentUser.id },
+        include: {
+          instructor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePictureUrl: true,
+            },
+          },
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: { startTime: 'asc' },
+      });
+      // Cast the result to the expected type for assertion
+      expect(result as StudentFetchedAppointment[]).toEqual(
+        mockStudentAppointments,
+      );
+    });
+
+    it('should return empty array when a student has no appointments', async () => {
+      // Arrange
+      mockPrismaService.appointment.findMany.mockResolvedValue([]);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockStudentUser);
+
+      // Assert
+      expect(result).toEqual([]);
+    });
+
+    it('should return appointments with null payment and description for instructor', async () => {
+      // Arrange
+      const appointmentsWithNulls: InstructorFetchedAppointment[] = [
+        {
+          ...mockInstructorAppointments[1],
+          paymentId: null,
+          payment: null,
+          description: null,
+        },
+      ];
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(appointmentsWithNulls);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockInstructorUser);
+
+      // Assert
+      const instructorResult = result as InstructorFetchedAppointment[];
+      expect(instructorResult).toEqual(appointmentsWithNulls);
+      expect(instructorResult[0].payment).toBeNull();
+      expect(instructorResult[0].description).toBeNull();
+    });
+
+    it('should return appointments with null payment for student', async () => {
+      // Arrange
+      const appointmentsWithNullPayment: StudentFetchedAppointment[] = [
+        {
+          ...mockStudentAppointments[1],
+          paymentId: null,
+          payment: null,
+        },
+      ];
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(appointmentsWithNullPayment);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockStudentUser);
+
+      // Assert
+      const studentResult = result as StudentFetchedAppointment[];
+      expect(studentResult).toEqual(appointmentsWithNullPayment);
+      expect(studentResult[0].payment).toBeNull();
+    });
+
+    it('should return appointments ordered by startTime ascending for instructor', async () => {
+      // Arrange
+      // Mock the findMany to return the data ALREADY SORTED, as if Prisma did the ordering.
+      const sortedAppointments: InstructorFetchedAppointment[] = [
+        mockInstructorAppointments[0], // 2024-07-01
+        mockInstructorAppointments[1], // 2024-07-02
+      ];
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(sortedAppointments);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockInstructorUser);
+
+      // Assert
+      expect(findManyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { startTime: 'asc' },
+        }),
+      );
+      // Verify that the result is ordered as expected
+      const instructorResult = result as InstructorFetchedAppointment[];
+      expect(instructorResult[0].startTime.getTime()).toBeLessThan(
+        instructorResult[1].startTime.getTime(),
+      );
+    });
+
+    it('should return appointments ordered by startTime ascending for student', async () => {
+      // Arrange
+      // Mock the findMany to return the data ALREADY SORTED, as if Prisma did the ordering.
+      const sortedAppointments: StudentFetchedAppointment[] = [
+        mockStudentAppointments[0], // 2024-07-03
+        mockStudentAppointments[1], // 2024-07-04
+      ];
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(sortedAppointments);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockStudentUser);
+
+      // Assert
+      expect(findManyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { startTime: 'asc' },
+        }),
+      );
+      // Verify that the result is ordered as expected
+      const studentResult = result as StudentFetchedAppointment[];
+      expect(studentResult[0].startTime.getTime()).toBeLessThan(
+        studentResult[1].startTime.getTime(),
+      );
+    });
+
+    it('should handle different appointment statuses correctly for instructor', async () => {
+      // Arrange
+      const appointmentsWithVariousStatuses: InstructorFetchedAppointment[] = [
+        { ...mockInstructorAppointments[0], status: 'CONFIRMED' },
+        { ...mockInstructorAppointments[0], id: 10, status: 'PENDING' },
+        { ...mockInstructorAppointments[0], id: 11, status: 'CANCELLED' },
+        { ...mockInstructorAppointments[0], id: 12, status: 'COMPLETED' },
+        { ...mockInstructorAppointments[0], id: 13, status: 'NOTATION' },
+      ];
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(appointmentsWithVariousStatuses);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockInstructorUser);
+
+      // Assert
+      const instructorResult = result as InstructorFetchedAppointment[];
+      expect(instructorResult.map((a) => a.status)).toEqual([
+        'CONFIRMED',
+        'PENDING',
+        'CANCELLED',
+        'COMPLETED',
+        'NOTATION',
+      ]);
+      expect(instructorResult).toHaveLength(5);
+    });
+
+    it('should handle different appointment statuses correctly for student', async () => {
+      // Arrange
+      const appointmentsWithVariousStatuses: StudentFetchedAppointment[] = [
+        { ...mockStudentAppointments[0], status: 'COMPLETED' },
+        { ...mockStudentAppointments[0], id: 20, status: 'CANCELLED' },
+        { ...mockStudentAppointments[0], id: 21, status: 'PENDING' },
+        { ...mockStudentAppointments[0], id: 22, status: 'CONFIRMED' },
+        { ...mockStudentAppointments[0], id: 23, status: 'NOTATION' },
+      ];
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(appointmentsWithVariousStatuses);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockStudentUser);
+
+      // Assert
+      const studentResult = result as StudentFetchedAppointment[];
+      expect(studentResult.map((a) => a.status)).toEqual([
+        'COMPLETED',
+        'CANCELLED',
+        'PENDING',
+        'CONFIRMED',
+        'NOTATION',
+      ]);
+      expect(studentResult).toHaveLength(5);
+    });
+
+    it('should throw an error if mockPrismaService.appointment.findMany fails for instructor', async () => {
+      // Arrange
+      const prismaError = new Error('Database connection error');
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockRejectedValue(prismaError);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentsByUser(mockInstructorUser),
+      ).rejects.toThrow('Database connection error');
+    });
+
+    it('should throw an error if mockPrismaService.appointment.findMany fails for student', async () => {
+      // Arrange
+      const prismaError = new Error('Database read error');
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockRejectedValue(prismaError);
+
+      // Act & Assert
+      await expect(
+        service.getAppointmentsByUser(mockStudentUser),
+      ).rejects.toThrow('Database read error');
+    });
+
+    it('should exclude sensitive information from student objects when fetching for instructor', async () => {
+      // Arrange
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(mockInstructorAppointments);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockInstructorUser);
+
+      // Assert
+      // Cast result to the specific type expected for an instructor
+      const instructorResult = result as InstructorFetchedAppointment[];
+      expect(instructorResult[0].student).not.toHaveProperty('email');
+      expect(instructorResult[0].student).not.toHaveProperty('password');
+      expect(instructorResult[0].student).not.toHaveProperty('neph'); // NEPH is sensitive for students
+      expect(instructorResult[0].student).not.toHaveProperty('creditCardId');
+    });
+
+    it('should exclude sensitive information from instructor objects when fetching for student', async () => {
+      // Arrange
+      const findManyMock = jest.spyOn(
+        mockPrismaService.appointment,
+        'findMany',
+      );
+      findManyMock.mockResolvedValue(mockStudentAppointments);
+
+      // Act
+      const result = await service.getAppointmentsByUser(mockStudentUser);
+
+      // Assert
+      // Cast result to the specific type expected for a student
+      const studentResult = result as StudentFetchedAppointment[];
+      expect(studentResult[0].instructor).not.toHaveProperty('email');
+      expect(studentResult[0].instructor).not.toHaveProperty('password');
+      expect(studentResult[0].instructor).not.toHaveProperty('siret'); // SIRET is sensitive for instructors
+      expect(studentResult[0].instructor).not.toHaveProperty(
+        'driverLicenceUrl',
+      );
+      expect(studentResult[0].instructor).not.toHaveProperty(
+        'registrationCertificateUrl',
+      );
+      expect(studentResult[0].instructor).not.toHaveProperty(
+        'insuranceCertificateUrl',
+      );
+      expect(studentResult[0].instructor).not.toHaveProperty('degreeUrl');
+      expect(studentResult[0].instructor).not.toHaveProperty(
+        'teachingAuthorizationUrl',
+      );
+      expect(studentResult[0].instructor).not.toHaveProperty('iban');
+      expect(studentResult[0].instructor).not.toHaveProperty('bic');
     });
   });
 });

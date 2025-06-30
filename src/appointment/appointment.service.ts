@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto';
 import { ScheduleValidationService } from '../schedule_validation/schedule_validation.service';
 import { UpdateAppointmentDto } from './dto';
+import { AuthenticatedUser } from '../auth/dto';
+import { isInstructor } from '../auth/guard/user-type.guard';
 
 @Injectable()
 export class AppointmentService {
@@ -58,6 +60,52 @@ export class AppointmentService {
         modifiedAt: new Date(),
       },
     });
+  }
+
+  async getAppointmentsByUser(user: AuthenticatedUser) {
+    if (isInstructor(user)) {
+      return this.prismaService.appointment.findMany({
+        where: {
+          instructorId: user.id,
+        },
+        include: {
+          student: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePictureUrl: true,
+            },
+          },
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: {
+          startTime: 'asc',
+        },
+      });
+    } else {
+      return this.prismaService.appointment.findMany({
+        where: {
+          studentId: user.id,
+        },
+        include: {
+          instructor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePictureUrl: true,
+            },
+          },
+          meetingPoint: true,
+          payment: true,
+        },
+        orderBy: {
+          startTime: 'asc',
+        },
+      });
+    }
   }
 
   async getAppointmentsByInstructorId(instructorId: number) {
