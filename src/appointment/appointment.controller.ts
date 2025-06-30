@@ -8,9 +8,13 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
+import { JwtGuard } from '../auth/guard';
+import { GetUser } from '../auth/decorator';
+import { AuthenticatedUser } from '../auth/dto';
 
 @Controller('appointments')
 export class AppointmentController {
@@ -19,6 +23,12 @@ export class AppointmentController {
   @Post()
   async createAppointment(@Body() createAppointmentDto: CreateAppointmentDto) {
     return this.appointmentService.createAppointment(createAppointmentDto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Get('me')
+  getMyAppointments(@GetUser() user: AuthenticatedUser) {
+    return this.appointmentService.getAppointmentsByUser(user);
   }
 
   @Get(':id')
