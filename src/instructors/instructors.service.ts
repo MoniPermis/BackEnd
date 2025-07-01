@@ -22,46 +22,103 @@ export class InstructorsService {
     return instructor;
   }
 
-  createFilteredInstructors(searchInfo: InstructorResearchDto) {
-    const filter: Prisma.InstructorWhereInput[] = [];
-    if (searchInfo.research.toLowerCase().includes('longitude')) {
-      return [];
-    }
-    const searchName = searchInfo.research.trim().split(' ');
+  async createDistanceFilter(
+    latitude: number,
+    longitude: number,
+    dist_max: number,
+  ) {
+    const nearbyMeetingPoints = await this.prisma.$queryRaw<
+      Array<{ instructorId: number }>
+    >`
+      SELECT DISTINCT "instructorId"
+      FROM "MeetingPoint"
+      WHERE (
+        6371 * acos(
+          cos(radians(${latitude})) * cos(radians(latitude)) *
+          cos(radians(longitude) - radians(${longitude})) +
+          sin(radians(${latitude})) * sin(radians(latitude))
+        )
+      ) <= ${dist_max};
+    `;
+    const nearbyInstructorIds = nearbyMeetingPoints.map((r) => r.instructorId);
+
+    return {
+      id: { in: nearbyInstructorIds.length ? nearbyInstructorIds : [0] },
+    };
+  }
+
+  createNameFilter(name: string) {
+    const searchName = name.trim().split(' ');
     if (searchName.length > 1) {
-      filter.push({
+      return {
         OR: [
           {
             AND: [
-              { firstName: { startsWith: searchName[0], mode: 'insensitive' } },
-              { lastName: { startsWith: searchName[1], mode: 'insensitive' } },
+              {
+                firstName: {
+                  startsWith: searchName[0],
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+              {
+                lastName: {
+                  startsWith: searchName[1],
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
             ],
           },
           {
             AND: [
-              { firstName: { startsWith: searchName[1], mode: 'insensitive' } },
-              { lastName: { startsWith: searchName[0], mode: 'insensitive' } },
+              {
+                firstName: {
+                  startsWith: searchName[1],
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+              {
+                lastName: {
+                  startsWith: searchName[0],
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
             ],
           },
         ],
-      });
+      };
     } else {
-      filter.push({
+      return {
         OR: [
           {
             firstName: {
-              startsWith: searchInfo.research.trim(),
-              mode: 'insensitive',
+              startsWith: searchName[0].trim(),
+              mode: Prisma.QueryMode.insensitive,
             },
           },
           {
             lastName: {
-              startsWith: searchInfo.research.trim(),
-              mode: 'insensitive',
+              startsWith: searchName[0].trim(),
+              mode: Prisma.QueryMode.insensitive,
             },
           },
         ],
-      });
+      };
+    }
+  }
+
+  async createFilteredInstructors(searchInfo: InstructorResearchDto) {
+    const filter: Prisma.InstructorWhereInput[] = [];
+    if (searchInfo.latitude && searchInfo.longitude && searchInfo.dist_max) {
+      filter.push(
+        await this.createDistanceFilter(
+          Number(searchInfo.latitude),
+          Number(searchInfo.longitude),
+          Number(searchInfo.dist_max),
+        ),
+      );
+    }
+    if (searchInfo.name) {
+      filter.push(this.createNameFilter(searchInfo.name));
     }
     if (searchInfo.price) {
       const price = Number(searchInfo.price);
@@ -78,23 +135,21 @@ export class InstructorsService {
         gender: searchInfo.gender,
       });
     }
-    if (searchInfo.date) {
-      filter.push({});
-    }
     return filter;
   }
 
   async getAllInstructors(searchInfo: InstructorResearchDto) {
-    const filter = this.createFilteredInstructors(searchInfo);
+    const filter: Prisma.InstructorWhereInput[] =
+      await this.createFilteredInstructors(searchInfo);
     return await this.prisma.instructor.findMany({
       where: {
         AND: filter,
       },
       include: {
         price: true,
+        appointments: true,
         availabilitySchedules: true,
-        // unavailabilities: true,
-        // meetingPoints: true,
+        unavailabilities: true,
       },
     });
   }

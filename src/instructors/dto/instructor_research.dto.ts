@@ -7,25 +7,46 @@ import {
   IsString,
 } from 'class-validator';
 
-export enum gender {
+export enum Gender {
   MALE = 'male',
   FEMALE = 'female',
 }
 
+export enum ResearchType {
+  NAME = 'name',
+  ADRESS = 'address',
+}
+
 export class InstructorResearchDto {
   @IsNotEmpty()
+  @IsEnum(ResearchType)
+  type: ResearchType;
+
+  @IsNotEmpty()
+  @IsNumberString()
+  latitude: string;
+
+  @IsNotEmpty()
+  @IsNumberString()
+  longitude: string;
+
+  @IsNotEmpty()
+  @IsNumberString()
+  dist_max: string;
+
+  @IsOptional()
   @IsString()
-  research: string;
+  name: string;
 
   @IsOptional()
   @IsNumberString()
   price?: number;
 
   @IsOptional()
-  @IsDateString()
-  date?: string;
+  @IsEnum(Gender)
+  gender?: string;
 
   @IsOptional()
-  @IsEnum(gender)
-  gender?: string;
+  @IsDateString()
+  date?: string;
 }
