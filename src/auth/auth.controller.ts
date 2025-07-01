@@ -1,10 +1,18 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthUserDto, CreateInstructorDto, CreateStudentDto } from './dto';
+import { AuthenticatedUser, AuthUserDto, CreateInstructorDto, CreateStudentDto } from './dto';
+import { JwtGuard } from './guard';
+import { GetUser } from './decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @UseGuards(JwtGuard)
+  @Get('me')
+  async getMe(@GetUser() user: AuthenticatedUser) {
+    return user;
+  }
 
   @Post('instructor/signup')
   async signup(@Body() createInstructorDto: CreateInstructorDto) {
