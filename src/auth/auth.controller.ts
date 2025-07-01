@@ -10,7 +10,7 @@ export class AuthController {
 
   @UseGuards(JwtGuard)
   @Get('me')
-  async getMe(@GetUser() user: AuthenticatedUser) {
+  getMe(@GetUser() user: AuthenticatedUser) {
     return user;
   }
 
