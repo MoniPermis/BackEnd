@@ -17,5 +17,6 @@ import { AppointmentModule } from 'src/appointment/appointment.module';
   ],
   controllers: [InstructorsController],
   providers: [InstructorsService],
+  exports: [InstructorsService],
 })
 export class InstructorsModule {}
