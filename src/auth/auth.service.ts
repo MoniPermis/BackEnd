@@ -1,21 +1,23 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { AuthUserDto, CreateInstructorDto, CreateStudentDto } from './dto';
+import {
+  AuthenticatedUser,
+  AuthUserDto,
+  CreateInstructorDto,
+  CreateStudentDto,
+} from './dto';
 import * as argon from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-
-// Define a common interface for user authentication
-interface AuthenticatedUser {
-  id: number;
-  password: string;
-  email: string;
-}
+import { isInstructor, isStudent } from './guard/user-type.guard';
+import { InstructorsService } from '../instructors/instructors.service';
+import { CreateDeletedInstructorDto } from '../instructors/dto/create-instructor.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prismaService: PrismaService,
     private jwt: JwtService,
+    private instructorService: InstructorsService,
   ) {}
 
   async instructorSignup(instructor: CreateInstructorDto) {
@@ -116,7 +118,7 @@ export class AuthService {
   }
 
   async login(authUser: AuthUserDto) {
-    let user: AuthenticatedUser | null = null;
+    let user: { id: number; password: string; email: string } | null = null;
 
     if (authUser.userType === 'instructor') {
       const instructor = await this.prismaService.instructor.findUnique({
@@ -173,5 +175,36 @@ export class AuthService {
     return {
       access_token: token,
     };
+  }
+
+  async deleteUser(user: AuthenticatedUser) {
+    if (isInstructor(user)) {
+      const instructorToDelete: CreateDeletedInstructorDto = {
+        originalInstructorId: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        siret: user.siret,
+        iban: user.iban,
+      };
+      const deletedInstructor =
+        await this.instructorService.createDeletedInstructor(
+          instructorToDelete,
+        );
+      await this.prismaService.purchaseOrder.updateMany({
+        where: { instructorId: user.id },
+        data: { instructorId: null, deletedInstructorId: deletedInstructor.id },
+      });
+
+      return this.prismaService.instructor.delete({
+        where: { id: user.id },
+      });
+    } else if (isStudent(user)) {
+      return this.prismaService.student.delete({
+        where: { id: user.id },
+      });
+    } else {
+      throw new ConflictException('Invalid user type');
+    }
   }
 }

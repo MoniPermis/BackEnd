@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstructorsService } from './instructors.service';
 import { NotFoundException } from '@nestjs/common';
+import { CreateDeletedInstructorDto } from './dto/create-instructor.dto';
 
 describe('InstructorsService', () => {
   let service: InstructorsService;
@@ -10,6 +11,9 @@ describe('InstructorsService', () => {
     instructor: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+    },
+    deletedInstructor: {
+      create: jest.fn(),
     },
   };
 
@@ -132,6 +136,216 @@ describe('InstructorsService', () => {
         where: { id: param },
       });
       expect(mockPrisma.instructor.findUnique).toHaveBeenCalledTimes(1);
+    });
+  });
+  describe('createDeletedInstructor', () => {
+    const mockInstructor = {
+      id: 1,
+      priceId: 1,
+      firstName: 'John',
+      lastName: 'Doe',
+      gender: 'M',
+      email: 'john.doe@example.com',
+      phoneNumber: '+33123456789',
+      address: '123 Main St, Paris',
+      password: 'hashedPassword',
+      siret: '12345678901234',
+      driverLicenceUrl: 'https://example.com/licence.pdf',
+      registrationCertificateUrl: 'https://example.com/registration.pdf',
+      insuranceCertificateUrl: 'https://example.com/insurance.pdf',
+      degreeUrl: 'https://example.com/degree.pdf',
+      teachingAuthorizationUrl: 'https://example.com/authorization.pdf',
+      profilePictureUrl: 'https://example.com/profile.jpg',
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+      iban: 'FR1420041010050500013M02606',
+      bic: 'CCBPFRPP',
+    };
+
+    const mockDeletedInstructor = {
+      id: 1,
+      originalInstructorId: 1,
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      siret: '12345678901234',
+      iban: 'FR1420041010050500013M02606',
+      deletedAt: new Date(),
+    };
+
+    const mockCreateDeletedInstructorDto: CreateDeletedInstructorDto = {
+      originalInstructorId: 1,
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      siret: '12345678901234',
+      iban: 'FR1420041010050500013M02606',
+    };
+
+    it('should successfully create a deleted instructor when instructor exists', async () => {
+      // Arrange
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const expectedDeletedInstructor = {
+        ...mockDeletedInstructor,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        deletedAt: expect.any(Date),
+      };
+
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
+
+      // Act
+      const result = await service.createDeletedInstructor(
+        mockCreateDeletedInstructorDto,
+      );
+
+      // Assert
+      expect(mockPrisma.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: mockCreateDeletedInstructorDto.originalInstructorId },
+      });
+
+      expect(mockPrisma.deletedInstructor.create).toHaveBeenCalledWith({
+        data: {
+          originalInstructorId: mockInstructor.id,
+          firstName: mockInstructor.firstName,
+          lastName: mockInstructor.lastName,
+          email: mockInstructor.email,
+          siret: mockInstructor.siret,
+          iban: mockInstructor.iban,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          deletedAt: expect.any(Date),
+        },
+      });
+
+      expect(result).toEqual(mockDeletedInstructor);
+    });
+
+    it('should throw NotFoundException when instructor does not exist', async () => {
+      // Arrange
+      jest.spyOn(mockPrisma.instructor, 'findUnique').mockResolvedValue(null);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
+
+      // Act & Assert
+      await expect(
+        service.createDeletedInstructor(mockCreateDeletedInstructorDto),
+      ).rejects.toThrow(new NotFoundException('Instructeur non trouvé'));
+
+      expect(mockPrisma.instructor.findUnique).toHaveBeenCalledWith({
+        where: { id: mockCreateDeletedInstructorDto.originalInstructorId },
+      });
+
+      expect(mockPrisma.deletedInstructor.create).not.toHaveBeenCalled();
+    });
+
+    it('should use data from existing instructor, not from DTO', async () => {
+      // Arrange
+      const dtoWithDifferentData: CreateDeletedInstructorDto = {
+        originalInstructorId: 1,
+        firstName: 'Different',
+        lastName: 'Name',
+        email: 'different@example.com',
+        siret: '98765432109876',
+        iban: 'FR7630001007941234567890185',
+      };
+
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
+
+      // Act
+      await service.createDeletedInstructor(dtoWithDifferentData);
+
+      // Assert
+      expect(mockPrisma.deletedInstructor.create).toHaveBeenCalledWith({
+        data: {
+          originalInstructorId: mockInstructor.id,
+          firstName: mockInstructor.firstName, // Should use existing instructor data
+          lastName: mockInstructor.lastName, // Should use existing instructor data
+          email: mockInstructor.email, // Should use existing instructor data
+          siret: mockInstructor.siret, // Should use existing instructor data
+          iban: mockInstructor.iban, // Should use existing instructor data
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          deletedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should set deletedAt to current date', async () => {
+      // Arrange
+      const mockDate = new Date('2024-12-01T10:00:00Z');
+      const dateSpy = jest
+        .spyOn(global, 'Date')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        .mockImplementation(() => mockDate as any);
+
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
+
+      // Act
+      await service.createDeletedInstructor(mockCreateDeletedInstructorDto);
+
+      // Assert
+      expect(mockPrisma.deletedInstructor.create).toHaveBeenCalledWith({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        data: expect.objectContaining({
+          deletedAt: mockDate,
+        }),
+      });
+
+      dateSpy.mockRestore();
+    });
+
+    it('should handle database errors when creating deleted instructor', async () => {
+      // Arrange
+      const databaseError = new Error('Database connection failed');
+
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockRejectedValue(databaseError);
+
+      // Act & Assert
+      await expect(
+        service.createDeletedInstructor(mockCreateDeletedInstructorDto),
+      ).rejects.toThrow(databaseError);
+
+      expect(mockPrisma.instructor.findUnique).toHaveBeenCalled();
+      expect(mockPrisma.deletedInstructor.create).toHaveBeenCalled();
+    });
+
+    it('should handle database errors when finding instructor', async () => {
+      // Arrange
+      const databaseError = new Error('Database connection failed');
+
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockRejectedValue(databaseError);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
+
+      // Act & Assert
+      await expect(
+        service.createDeletedInstructor(mockCreateDeletedInstructorDto),
+      ).rejects.toThrow(databaseError);
+
+      expect(mockPrisma.instructor.findUnique).toHaveBeenCalled();
+      expect(mockPrisma.deletedInstructor.create).not.toHaveBeenCalled();
     });
   });
 });

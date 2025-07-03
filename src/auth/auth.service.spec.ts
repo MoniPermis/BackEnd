@@ -3,7 +3,14 @@ import { ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthUserDto, CreateInstructorDto, CreateStudentDto } from './dto';
+import { InstructorsService } from '../instructors/instructors.service';
+import {
+  AuthenticatedInstructor,
+  AuthenticatedStudent,
+  AuthUserDto,
+  CreateInstructorDto,
+  CreateStudentDto,
+} from './dto';
 import * as argon from 'argon2';
 
 jest.mock('argon2');
@@ -23,6 +30,9 @@ describe('AuthService', () => {
   };
   let mockJwtService: {
     signAsync: jest.Mock;
+  };
+  let mockInstructorsService: {
+    createDeletedInstructor: jest.Mock;
   };
 
   const mockCreateInstructorDto: CreateInstructorDto = {
@@ -91,6 +101,10 @@ describe('AuthService', () => {
       signAsync: jest.fn(),
     };
 
+    mockInstructorsService = {
+      createDeletedInstructor: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -101,6 +115,10 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: InstructorsService,
+          useValue: mockInstructorsService,
         },
       ],
     }).compile();
@@ -414,6 +432,9 @@ describe('AuthService - studentSignup', () => {
   let mockJwtService: {
     signAsync: jest.Mock;
   };
+  let mockInstructorsService: {
+    createDeletedInstructor: jest.Mock;
+  };
 
   const mockCreateStudentDto: CreateStudentDto = {
     firstName: 'Jane',
@@ -448,6 +469,10 @@ describe('AuthService - studentSignup', () => {
       signAsync: jest.fn(),
     };
 
+    mockInstructorsService = {
+      createDeletedInstructor: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -458,6 +483,10 @@ describe('AuthService - studentSignup', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: InstructorsService,
+          useValue: mockInstructorsService,
         },
       ],
     }).compile();
@@ -771,6 +800,9 @@ describe('AuthService - login and signToken', () => {
   let mockJwtService: {
     signAsync: jest.Mock;
   };
+  let mockInstructorsService: {
+    createDeletedInstructor: jest.Mock;
+  };
 
   const mockAuthUserDto: AuthUserDto = {
     email: 'test@example.com',
@@ -804,6 +836,10 @@ describe('AuthService - login and signToken', () => {
       signAsync: jest.fn(),
     };
 
+    mockInstructorsService = {
+      createDeletedInstructor: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -814,6 +850,10 @@ describe('AuthService - login and signToken', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: InstructorsService,
+          useValue: mockInstructorsService,
         },
       ],
     }).compile();
@@ -1049,6 +1089,316 @@ describe('AuthService - login and signToken', () => {
           secret: 'custom-secret',
         }),
       );
+    });
+  });
+});
+
+describe('AuthService - deleteUser', () => {
+  let service: AuthService;
+  let prismaService: any;
+  let instructorsService: any;
+
+  const mockInstructor: AuthenticatedInstructor = {
+    id: 1,
+    priceId: 1,
+    firstName: 'John',
+    lastName: 'Doe',
+    gender: 'Male',
+    email: 'john.doe@example.com',
+    phoneNumber: '123456789',
+    address: '123 Main St',
+    siret: '12345678901234',
+    driverLicenceUrl: 'http://example.com/licence',
+    registrationCertificateUrl: 'http://example.com/registration',
+    insuranceCertificateUrl: 'http://example.com/insurance',
+    degreeUrl: 'http://example.com/degree',
+    teachingAuthorizationUrl: 'http://example.com/teaching',
+    profilePictureUrl: 'http://example.com/profile.jpg',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01'),
+    iban: 'FR1420041010050500013M02606',
+    bic: 'BNPAFRPPXXX',
+  };
+
+  const mockStudent: AuthenticatedStudent = {
+    id: 2,
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'jane.smith@example.com',
+    phoneNumber: '987654321',
+    neph: 123456789,
+    creditCardId: 1,
+    profilePictureUrl: 'http://example.com/jane-profile.jpg',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01'),
+  };
+
+  const mockDeletedInstructor = {
+    id: 1,
+    originalInstructorId: 1,
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john.doe@example.com',
+    siret: '12345678901234',
+    iban: 'FR1420041010050500013M02606',
+    deletedAt: new Date(),
+  };
+
+  beforeEach(async () => {
+    const mockPrismaService = {
+      instructor: {
+        delete: jest.fn(),
+      },
+      student: {
+        delete: jest.fn(),
+      },
+      purchaseOrder: {
+        updateMany: jest.fn(),
+      },
+    };
+
+    const mockJwtService = {
+      signAsync: jest.fn(),
+    };
+
+    const mockInstructorsService = {
+      createDeletedInstructor: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
+        },
+        {
+          provide: InstructorsService,
+          useValue: mockInstructorsService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<AuthService>(AuthService);
+    prismaService = module.get<PrismaService>(PrismaService);
+    instructorsService = module.get<InstructorsService>(InstructorsService);
+  });
+
+  describe('deleteUser - Instructor', () => {
+    it('should successfully delete an instructor', async () => {
+      // Arrange
+      const expectedDeletedInstructorDto = {
+        originalInstructorId: mockInstructor.id,
+        firstName: mockInstructor.firstName,
+        lastName: mockInstructor.lastName,
+        email: mockInstructor.email,
+        siret: mockInstructor.siret,
+        iban: mockInstructor.iban,
+      };
+
+      (
+        instructorsService.createDeletedInstructor as jest.Mock
+      ).mockResolvedValue(mockDeletedInstructor);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (prismaService.purchaseOrder.updateMany as jest.Mock).mockResolvedValue({
+        count: 2,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (prismaService.instructor.delete as jest.Mock).mockResolvedValue(
+        mockInstructor,
+      );
+
+      // Act
+      const result = await service.deleteUser(mockInstructor);
+
+      // Assert
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(instructorsService.createDeletedInstructor).toHaveBeenCalledWith(
+        expectedDeletedInstructorDto,
+      );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(prismaService.purchaseOrder.updateMany).toHaveBeenCalledWith({
+        where: { instructorId: mockInstructor.id },
+        data: {
+          instructorId: null,
+          deletedInstructorId: mockDeletedInstructor.id,
+        },
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(prismaService.instructor.delete).toHaveBeenCalledWith({
+        where: { id: mockInstructor.id },
+      });
+
+      expect(result).toEqual(mockInstructor);
+    });
+
+    it('should handle instructor deletion when createDeletedInstructor fails', async () => {
+      // Arrange
+      const error = new Error('Database error');
+
+      (
+        instructorsService.createDeletedInstructor as jest.Mock
+      ).mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(service.deleteUser(mockInstructor)).rejects.toThrow(error);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(instructorsService.createDeletedInstructor).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(prismaService.purchaseOrder.updateMany).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(prismaService.instructor.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle instructor deletion when purchaseOrder update fails', async () => {
+      // Arrange
+      const error = new Error('Database error');
+      (
+        instructorsService.createDeletedInstructor as jest.Mock
+      ).mockResolvedValue(mockDeletedInstructor);
+      (prismaService.purchaseOrder.updateMany as jest.Mock).mockRejectedValue(
+        error,
+      );
+
+      // Act & Assert
+      await expect(service.deleteUser(mockInstructor)).rejects.toThrow(error);
+      expect(instructorsService.createDeletedInstructor).toHaveBeenCalled();
+      expect(prismaService.purchaseOrder.updateMany).toHaveBeenCalled();
+      expect(prismaService.instructor.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle instructor deletion when instructor delete fails', async () => {
+      // Arrange
+      const error = new Error('Database error');
+      (
+        instructorsService.createDeletedInstructor as jest.Mock
+      ).mockResolvedValue(mockDeletedInstructor);
+      (prismaService.purchaseOrder.updateMany as jest.Mock).mockResolvedValue({
+        count: 0,
+      });
+      (prismaService.instructor.delete as jest.Mock).mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(service.deleteUser(mockInstructor)).rejects.toThrow(error);
+      expect(instructorsService.createDeletedInstructor).toHaveBeenCalled();
+      expect(prismaService.purchaseOrder.updateMany).toHaveBeenCalled();
+      expect(prismaService.instructor.delete).toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteUser - Student', () => {
+    it('should successfully delete a student', async () => {
+      // Arrange
+      (prismaService.student.delete as jest.Mock).mockResolvedValue(
+        mockStudent,
+      );
+
+      // Act
+      const result = await service.deleteUser(mockStudent);
+
+      // Assert
+      expect(prismaService.student.delete).toHaveBeenCalledWith({
+        where: { id: mockStudent.id },
+      });
+      expect(result).toEqual(mockStudent);
+
+      // Verify that instructor-specific methods are not called
+      expect(instructorsService.createDeletedInstructor).not.toHaveBeenCalled();
+      expect(prismaService.purchaseOrder.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('should handle student deletion when delete fails', async () => {
+      // Arrange
+      const error = new Error('Database error');
+      (prismaService.student.delete as jest.Mock).mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(service.deleteUser(mockStudent)).rejects.toThrow(error);
+      expect(prismaService.student.delete).toHaveBeenCalledWith({
+        where: { id: mockStudent.id },
+      });
+    });
+  });
+
+  describe('deleteUser - Invalid User Type', () => {
+    it('should throw ConflictException for invalid user type', async () => {
+      // Arrange
+      const invalidUser = {
+        id: 3,
+        firstName: 'Invalid',
+        lastName: 'User',
+        email: 'invalid@example.com',
+        // Missing both 'siret' (instructor) and 'neph' (student) properties
+      } as any;
+
+      // Act & Assert
+      await expect(service.deleteUser(invalidUser)).rejects.toThrow(
+        new ConflictException('Invalid user type'),
+      );
+
+      // Verify that no database operations are performed
+      expect(instructorsService.createDeletedInstructor).not.toHaveBeenCalled();
+      expect(prismaService.purchaseOrder.updateMany).not.toHaveBeenCalled();
+      expect(prismaService.instructor.delete).not.toHaveBeenCalled();
+      expect(prismaService.student.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteUser - Edge Cases', () => {
+    it('should handle instructor with no associated purchase orders', async () => {
+      // Arrange
+      (
+        instructorsService.createDeletedInstructor as jest.Mock
+      ).mockResolvedValue(mockDeletedInstructor);
+      (prismaService.purchaseOrder.updateMany as jest.Mock).mockResolvedValue({
+        count: 0,
+      });
+      (prismaService.instructor.delete as jest.Mock).mockResolvedValue(
+        mockInstructor,
+      );
+
+      // Act
+      const result = await service.deleteUser(mockInstructor);
+
+      // Assert
+      expect(prismaService.purchaseOrder.updateMany).toHaveBeenCalledWith({
+        where: { instructorId: mockInstructor.id },
+        data: {
+          instructorId: null,
+          deletedInstructorId: mockDeletedInstructor.id,
+        },
+      });
+      expect(result).toEqual(mockInstructor);
+    });
+
+    it('should handle instructor with multiple associated purchase orders', async () => {
+      // Arrange
+      (
+        instructorsService.createDeletedInstructor as jest.Mock
+      ).mockResolvedValue(mockDeletedInstructor);
+      (prismaService.purchaseOrder.updateMany as jest.Mock).mockResolvedValue({
+        count: 5,
+      });
+      (prismaService.instructor.delete as jest.Mock).mockResolvedValue(
+        mockInstructor,
+      );
+
+      // Act
+      const result = await service.deleteUser(mockInstructor);
+
+      // Assert
+      expect(prismaService.purchaseOrder.updateMany).toHaveBeenCalledWith({
+        where: { instructorId: mockInstructor.id },
+        data: {
+          instructorId: null,
+          deletedInstructorId: mockDeletedInstructor.id,
+        },
+      });
+      expect(result).toEqual(mockInstructor);
     });
   });
 });
