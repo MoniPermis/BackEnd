@@ -20,8 +20,9 @@ export class InstructorsService {
     return await this.prisma.instructor.findMany();
   }
 
-  async createDeletedInstructor(deletedInstructorData: CreateDeletedInstructorDto)
-  {
+  async createDeletedInstructor(
+    deletedInstructorData: CreateDeletedInstructorDto,
+  ) {
     const existingInstructor = await this.prisma.instructor.findUnique({
       where: { id: deletedInstructorData.originalInstructorId },
     });

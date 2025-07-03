@@ -14,7 +14,7 @@ describe('InstructorsService', () => {
     },
     deletedInstructor: {
       create: jest.fn(),
-    }
+    },
   };
 
   beforeEach(async () => {
@@ -159,7 +159,7 @@ describe('InstructorsService', () => {
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
       iban: 'FR1420041010050500013M02606',
-      bic: 'CCBPFRPP'
+      bic: 'CCBPFRPP',
     };
 
     const mockDeletedInstructor = {
@@ -170,7 +170,7 @@ describe('InstructorsService', () => {
       email: 'john.doe@example.com',
       siret: '12345678901234',
       iban: 'FR1420041010050500013M02606',
-      deletedAt: new Date()
+      deletedAt: new Date(),
     };
 
     const mockCreateDeletedInstructorDto: CreateDeletedInstructorDto = {
@@ -179,21 +179,29 @@ describe('InstructorsService', () => {
       lastName: 'Doe',
       email: 'john.doe@example.com',
       siret: '12345678901234',
-      iban: 'FR1420041010050500013M02606'
+      iban: 'FR1420041010050500013M02606',
     };
 
     it('should successfully create a deleted instructor when instructor exists', async () => {
       // Arrange
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const expectedDeletedInstructor = {
         ...mockDeletedInstructor,
-        deletedAt: expect.any(Date)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        deletedAt: expect.any(Date),
       };
 
-      jest.spyOn(mockPrisma.instructor, 'findUnique').mockResolvedValue(mockInstructor);
-      jest.spyOn(mockPrisma.deletedInstructor, 'create').mockResolvedValue(mockDeletedInstructor);
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
 
       // Act
-      const result = await service.createDeletedInstructor(mockCreateDeletedInstructorDto);
+      const result = await service.createDeletedInstructor(
+        mockCreateDeletedInstructorDto,
+      );
 
       // Assert
       expect(mockPrisma.instructor.findUnique).toHaveBeenCalledWith({
@@ -208,6 +216,7 @@ describe('InstructorsService', () => {
           email: mockInstructor.email,
           siret: mockInstructor.siret,
           iban: mockInstructor.iban,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           deletedAt: expect.any(Date),
         },
       });
@@ -218,11 +227,13 @@ describe('InstructorsService', () => {
     it('should throw NotFoundException when instructor does not exist', async () => {
       // Arrange
       jest.spyOn(mockPrisma.instructor, 'findUnique').mockResolvedValue(null);
-      jest.spyOn(mockPrisma.deletedInstructor, 'create').mockResolvedValue(mockDeletedInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
 
       // Act & Assert
       await expect(
-        service.createDeletedInstructor(mockCreateDeletedInstructorDto)
+        service.createDeletedInstructor(mockCreateDeletedInstructorDto),
       ).rejects.toThrow(new NotFoundException('Instructeur non trouvé'));
 
       expect(mockPrisma.instructor.findUnique).toHaveBeenCalledWith({
@@ -240,11 +251,15 @@ describe('InstructorsService', () => {
         lastName: 'Name',
         email: 'different@example.com',
         siret: '98765432109876',
-        iban: 'FR7630001007941234567890185'
+        iban: 'FR7630001007941234567890185',
       };
 
-      jest.spyOn(mockPrisma.instructor, 'findUnique').mockResolvedValue(mockInstructor);
-      jest.spyOn(mockPrisma.deletedInstructor, 'create').mockResolvedValue(mockDeletedInstructor);
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
 
       // Act
       await service.createDeletedInstructor(dtoWithDifferentData);
@@ -254,10 +269,11 @@ describe('InstructorsService', () => {
         data: {
           originalInstructorId: mockInstructor.id,
           firstName: mockInstructor.firstName, // Should use existing instructor data
-          lastName: mockInstructor.lastName,   // Should use existing instructor data
-          email: mockInstructor.email,         // Should use existing instructor data
-          siret: mockInstructor.siret,         // Should use existing instructor data
-          iban: mockInstructor.iban,           // Should use existing instructor data
+          lastName: mockInstructor.lastName, // Should use existing instructor data
+          email: mockInstructor.email, // Should use existing instructor data
+          siret: mockInstructor.siret, // Should use existing instructor data
+          iban: mockInstructor.iban, // Should use existing instructor data
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           deletedAt: expect.any(Date),
         },
       });
@@ -266,16 +282,24 @@ describe('InstructorsService', () => {
     it('should set deletedAt to current date', async () => {
       // Arrange
       const mockDate = new Date('2024-12-01T10:00:00Z');
-      const dateSpy = jest.spyOn(global, 'Date').mockImplementation(() => mockDate as any);
+      const dateSpy = jest
+        .spyOn(global, 'Date')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        .mockImplementation(() => mockDate as any);
 
-      jest.spyOn(mockPrisma.instructor, 'findUnique').mockResolvedValue(mockInstructor);
-      jest.spyOn(mockPrisma.deletedInstructor, 'create').mockResolvedValue(mockDeletedInstructor);
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
 
       // Act
       await service.createDeletedInstructor(mockCreateDeletedInstructorDto);
 
       // Assert
       expect(mockPrisma.deletedInstructor.create).toHaveBeenCalledWith({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: expect.objectContaining({
           deletedAt: mockDate,
         }),
@@ -288,12 +312,16 @@ describe('InstructorsService', () => {
       // Arrange
       const databaseError = new Error('Database connection failed');
 
-      jest.spyOn(mockPrisma.instructor, 'findUnique').mockResolvedValue(mockInstructor);
-      jest.spyOn(mockPrisma.deletedInstructor, 'create').mockRejectedValue(databaseError);
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockResolvedValue(mockInstructor);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockRejectedValue(databaseError);
 
       // Act & Assert
       await expect(
-        service.createDeletedInstructor(mockCreateDeletedInstructorDto)
+        service.createDeletedInstructor(mockCreateDeletedInstructorDto),
       ).rejects.toThrow(databaseError);
 
       expect(mockPrisma.instructor.findUnique).toHaveBeenCalled();
@@ -304,12 +332,16 @@ describe('InstructorsService', () => {
       // Arrange
       const databaseError = new Error('Database connection failed');
 
-      jest.spyOn(mockPrisma.instructor, 'findUnique').mockRejectedValue(databaseError);
-      jest.spyOn(mockPrisma.deletedInstructor, 'create').mockResolvedValue(mockDeletedInstructor);
+      jest
+        .spyOn(mockPrisma.instructor, 'findUnique')
+        .mockRejectedValue(databaseError);
+      jest
+        .spyOn(mockPrisma.deletedInstructor, 'create')
+        .mockResolvedValue(mockDeletedInstructor);
 
       // Act & Assert
       await expect(
-        service.createDeletedInstructor(mockCreateDeletedInstructorDto)
+        service.createDeletedInstructor(mockCreateDeletedInstructorDto),
       ).rejects.toThrow(databaseError);
 
       expect(mockPrisma.instructor.findUnique).toHaveBeenCalled();
