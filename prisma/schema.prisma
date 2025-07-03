@@ -7,6 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model DeletedInstructor {
+  id                   Int             @id @default(autoincrement())
+  originalInstructorId Int             @unique @map("original_instructor_id") // Reference to original instructor ID
+  firstName            String          @map("first_name") @db.VarChar(255)
+  lastName             String          @map("last_name") @db.VarChar(255)
+  email                String          @map("email") @db.VarChar(255)
+  siret                String          @map("siret") @db.VarChar(255)
+  iban                 String          @map("IBAN") @db.VarChar(255)
+  deletedAt            DateTime        @map("deleted_at") @db.Date
+  PurchaseOrder        PurchaseOrder[]
+
+  @@map("deleted_instructor")
+}
+
 model Instructor {
   id                         Int      @id @default(autoincrement())
   priceId                    Int      @map("price_id")
@@ -73,8 +87,8 @@ model Tchat {
   lastMessageAt DateTime @map("last_message_at") @db.Date
 
   // Relations
-  student    Student    @relation(fields: [studentId], references: [id])
-  instructor Instructor @relation(fields: [instructorId], references: [id])
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  instructor Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
   messages   Message[]
 
   @@map("tchat")
@@ -89,7 +103,7 @@ model Message {
   sentAt     DateTime @map("sent_at") @db.Date
 
   // Relations
-  tchat Tchat @relation(fields: [tchatId], references: [id])
+  tchat Tchat @relation(fields: [tchatId], references: [id], onDelete: Cascade)
 
   @@map("message")
 }
@@ -121,8 +135,8 @@ model Appointment {
   modifiedAt     DateTime          @map("modified_at") @db.Date
 
   // Relations
-  student      Student      @relation(fields: [studentId], references: [id])
-  instructor   Instructor   @relation(fields: [instructorId], references: [id])
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  instructor   Instructor   @relation(fields: [instructorId], references: [id], onDelete: Cascade)
   meetingPoint MeetingPoint @relation(fields: [meetingPointId], references: [id])
   payment      Payment?     @relation(fields: [paymentId], references: [id])
 
@@ -147,7 +161,7 @@ model MeetingPoint {
   modifiedAt   DateTime @map("modified_at") @db.Date
 
   // Relations
-  instructor   Instructor    @relation(fields: [instructorId], references: [id])
+  instructor   Instructor    @relation(fields: [instructorId], references: [id], onDelete: Cascade)
   appointments Appointment[]
 
   @@map("meeting_point")
@@ -164,7 +178,7 @@ model AvailabilitySchedule {
   note           String?   @db.VarChar(255)
 
   // Relations
-  instructor Instructor @relation(fields: [instructorId], references: [id])
+  instructor Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@map("availability_schedule")
 }
@@ -184,7 +198,7 @@ model InstructorUnavailability {
   reason        String   @db.VarChar(255)
 
   // Relations
-  instructor Instructor @relation(fields: [instructorId], references: [id])
+  instructor Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@map("instructor_unavailability")
 }
@@ -197,7 +211,7 @@ model InstructorReview {
   createdAt    DateTime @map("created_at") @db.Date
 
   // Relations
-  instructor Instructor @relation(fields: [instructorId], references: [id])
+  instructor Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@map("instructor_review")
 }
@@ -231,7 +245,8 @@ model Price {
 
 model PurchaseOrder {
   id                      Int      @id @default(autoincrement())
-  instructorId            Int      @map("instructor_id")
+  instructorId            Int?     @map("instructor_id")
+  deletedInstructorId     Int?     @map("deleted_instructor_id")
   paymentId               Int      @map("payment_id")
   uniqueNumber            String   @unique @map("unique_number") @db.Uuid
   title                   String   @db.VarChar(255)
@@ -254,8 +269,9 @@ model PurchaseOrder {
   createdAt               DateTime @map("created_at") @db.Date
 
   // Relations
-  instructor Instructor @relation(fields: [instructorId], references: [id])
-  payment    Payment    @relation(fields: [paymentId], references: [id])
+  instructor        Instructor?        @relation(fields: [instructorId], references: [id], onDelete: SetNull)
+  deletedInstructor DeletedInstructor? @relation(fields: [deletedInstructorId], references: [id])
+  payment           Payment            @relation(fields: [paymentId], references: [id])
 
   @@map("purchase_order")
 }
