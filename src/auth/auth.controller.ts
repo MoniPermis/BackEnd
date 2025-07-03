@@ -1,6 +1,20 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthenticatedUser, AuthUserDto, CreateInstructorDto, CreateStudentDto } from './dto';
+import {
+  AuthenticatedUser,
+  AuthUserDto,
+  CreateInstructorDto,
+  CreateStudentDto,
+} from './dto';
 import { JwtGuard } from './guard';
 import { GetUser } from './decorator';
 
@@ -12,6 +26,13 @@ export class AuthController {
   @Get('me')
   getMe(@GetUser() user: AuthenticatedUser) {
     return user;
+  }
+
+  @UseGuards(JwtGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('me')
+  deleteMe(@GetUser() user: AuthenticatedUser) {
+    return this.authService.deleteUser(user);
   }
 
   @Post('instructor/signup')
